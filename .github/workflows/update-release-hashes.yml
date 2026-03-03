@@ -227,6 +227,19 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          # The release trigger checks out a detached HEAD (the tagged SHA).
+          # Even with `ref: default_branch` on actions/checkout, intermediate
+          # steps (actions/github-script, setup-node) can silently re-detach it.
+          #
+          # `git checkout main` alone is NOT enough — if the local branch ref
+          # doesn't exist (only origin/main does), git silently stays detached.
+          #
+          # `-B <branch> origin/<branch>` force-creates (or resets) the local
+          # branch to track the remote, which is the only reliable way to
+          # guarantee HEAD is attached before committing.
+          BRANCH="${{ github.event.repository.default_branch }}"
+          git checkout -B "${BRANCH}" "origin/${BRANCH}"
+
           git add latest.json
 
           # Exit cleanly if there's nothing new to commit (idempotent re-runs)
@@ -237,4 +250,4 @@ jobs:
 
           VERSION="${{ steps.compute-hashes.outputs.version }}"
           git commit -m "chore: update latest.json for release v${VERSION} [skip ci]"
-          git push origin HEAD:${{ github.event.repository.default_branch }}
+          git push origin "${BRANCH}"
