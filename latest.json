@@ -1,0 +1,33 @@
+{
+  "version": "1.0.0",
+  "releaseDate": "2026-03-03",
+  "releaseNotes": "### What's New\n- Initial release of Compass Desktop",
+  "releaseNotesUrl": "https://github.com/compassap/compass-desktop/blob/main/CHANGELOG.md",
+  "mandatory": false,
+  "platforms": {
+    "win32-x64": {
+      "url": "https://raw.githubusercontent.com/compassap/compass-desktop-releases/main/v1.0.0/Compass-Desktop-1.0.0-portable.exe",
+      "sha256": "<sha256-of-win32-x64-binary>",
+      "size": 0,
+      "filename": "Compass-Desktop-1.0.0-portable.exe"
+    },
+    "darwin-x64": {
+      "url": "https://raw.githubusercontent.com/compassap/compass-desktop-releases/main/v1.0.0/Compass-Desktop-1.0.0-mac-x64.dmg",
+      "sha256": "<sha256-of-darwin-x64-binary>",
+      "size": 0,
+      "filename": "Compass-Desktop-1.0.0-mac-x64.dmg"
+    },
+    "darwin-arm64": {
+      "url": "https://raw.githubusercontent.com/compassap/compass-desktop-releases/main/v1.0.0/Compass-Desktop-1.0.0-mac-arm64.dmg",
+      "sha256": "<sha256-of-darwin-arm64-binary>",
+      "size": 0,
+      "filename": "Compass-Desktop-1.0.0-mac-arm64.dmg"
+    },
+    "linux-x64": {
+      "url": "https://raw.githubusercontent.com/compassap/compass-desktop-releases/main/v1.0.0/Compass-Desktop-1.0.0-linux-x64.deb",
+      "sha256": "<sha256-of-linux-x64-binary>",
+      "size": 0,
+      "filename": "Compass-Desktop-1.0.0-linux-x64.deb"
+    }
+  }
+}
