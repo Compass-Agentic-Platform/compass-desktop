@@ -44,6 +44,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          # Explicitly check out the default branch by name so we are on a
+          # real branch (not a detached HEAD). Release triggers otherwise check
+          # out the tagged commit SHA, which causes `git push` to fail with
+          # "fatal: You are not currently on a branch".
+          ref: ${{ github.event.repository.default_branch }}
           # fetch-depth: 0 ensures we have the full history so git push works
           # correctly even when branch protection allows force-push or rebases.
           fetch-depth: 0
@@ -232,4 +237,4 @@ jobs:
 
           VERSION="${{ steps.compute-hashes.outputs.version }}"
           git commit -m "chore: update latest.json for release v${VERSION} [skip ci]"
-          git push
+          git push origin HEAD:${{ github.event.repository.default_branch }}
