@@ -1,0 +1,235 @@
+# update-release-hashes.yml
+#
+# Triggers whenever a GitHub Release is created or edited.
+# For each non-source binary asset attached to the release, this workflow:
+#   1. Downloads the asset
+#   2. Computes its SHA-256 hash and byte size
+#   3. Writes the results into latest.json
+#   4. Commits and pushes latest.json back to the default branch
+#
+# Requirements:
+#   - Repository must grant "Read and write permissions" to GITHUB_TOKEN
+#     (Settings → Actions → General → Workflow permissions)
+#   - If branch protection is enabled on the default branch, see README.md
+#     for the RELEASE_PAT workaround.
+#
+# Notes:
+#   - Draft releases are skipped entirely.
+#   - The commit message includes [skip ci] to prevent workflow loops.
+#   - Asset downloads are retried up to 3 times with exponential backoff.
+
+name: Update release hashes
+
+on:
+  release:
+    types: [created, edited]
+
+permissions:
+  contents: write  # needed to push the updated latest.json commit
+
+jobs:
+  update-hashes:
+    name: Hash assets and update latest.json
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Guard: skip draft releases ─────────────────────────────────────────
+      - name: Skip draft releases
+        if: github.event.release.draft == true
+        run: |
+          echo "Release is a draft — skipping."
+          exit 0
+
+      # ── Checkout ───────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # fetch-depth: 0 ensures we have the full history so git push works
+          # correctly even when branch protection allows force-push or rebases.
+          fetch-depth: 0
+          # Use RELEASE_PAT if set (needed when branch protection blocks the
+          # default GITHUB_TOKEN from pushing). Falls back to GITHUB_TOKEN.
+          token: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
+
+      # ── Node.js setup ──────────────────────────────────────────────────────
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      # ── Download assets, hash them, write metadata files ──────────────────
+      - name: Download assets and compute hashes
+        id: compute-hashes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs   = require('fs')
+            const path = require('path')
+
+            const release = context.payload.release
+            const tag     = release.tag_name
+
+            // ── Fetch the asset list ────────────────────────────────────────
+            const { data: allAssets } = await github.rest.repos.listReleaseAssets({
+              owner:      context.repo.owner,
+              repo:       context.repo.repo,
+              release_id: release.id,
+              per_page:   100,
+            })
+
+            // Filter out GitHub's auto-generated source archives
+            const binaryAssets = allAssets.filter(a =>
+              !a.name.startsWith('Source code') &&
+              (a.name.endsWith('.exe') ||
+               a.name.endsWith('.dmg') ||
+               a.name.endsWith('.deb') ||
+               a.name.endsWith('.AppImage') ||
+               a.name.endsWith('.zip') ||
+               a.name.endsWith('.tar.gz'))
+            )
+
+            if (binaryAssets.length === 0) {
+              core.warning(`Release ${tag} has no binary assets — skipping latest.json update.`)
+              core.setOutput('has_assets', 'false')
+              return
+            }
+
+            core.setOutput('has_assets', 'true')
+            core.info(`Found ${binaryAssets.length} binary asset(s) for ${tag}`)
+
+            // ── Helper: infer platform key from filename ────────────────────
+            function platformFromFilename(name) {
+              const n = name.toLowerCase()
+              if (n.endsWith('.exe') || n.includes('win32') || n.includes('windows')) return 'win32-x64'
+              if (n.includes('mac-arm64') || n.includes('darwin-arm64') || n.includes('arm64')) return 'darwin-arm64'
+              if (n.includes('mac-x64')   || n.includes('darwin-x64')   || n.includes('mac'))   return 'darwin-x64'
+              if (n.includes('linux-x64') || n.includes('linux'))                                return 'linux-x64'
+              return null
+            }
+
+            // ── Helper: download with retry (exponential backoff) ──────────
+            async function downloadWithRetry(asset, destPath, maxRetries = 3) {
+              let lastError
+              for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                  // Use the Octokit streaming endpoint so the token is sent
+                  // correctly (release assets redirect to S3 with a signed URL).
+                  const response = await github.rest.repos.getReleaseAsset({
+                    owner:    context.repo.owner,
+                    repo:     context.repo.repo,
+                    asset_id: asset.id,
+                    headers:  { Accept: 'application/octet-stream' },
+                  })
+
+                  // The response data is a Buffer when Accept is octet-stream
+                  fs.writeFileSync(destPath, Buffer.from(response.data))
+                  core.info(`  [OK] Downloaded ${asset.name} (attempt ${attempt})`)
+                  return
+                } catch (err) {
+                  lastError = err
+                  const delay = Math.pow(2, attempt - 1) * 1000  // 1s, 2s, 4s
+                  core.warning(`  [RETRY] ${asset.name} attempt ${attempt} failed: ${err.message}. Retrying in ${delay}ms…`)
+                  await new Promise(r => setTimeout(r, delay))
+                }
+              }
+              throw new Error(`Failed to download ${asset.name} after ${maxRetries} attempts: ${lastError.message}`)
+            }
+
+            // ── Download each asset and hash it ────────────────────────────
+            const tmpDir = '/tmp/release-assets'
+            fs.mkdirSync(tmpDir, { recursive: true })
+
+            const { execSync } = require('child_process')
+            const failedAssets = []
+            const assetMetadata = []
+
+            for (const asset of binaryAssets) {
+              const platform = platformFromFilename(asset.name)
+              if (!platform) {
+                core.warning(`  [SKIP] Cannot determine platform for: ${asset.name}`)
+                continue
+              }
+
+              const destPath = path.join(tmpDir, asset.name)
+
+              try {
+                await downloadWithRetry(asset, destPath)
+
+                // Hash using our existing script — outputs bare hex to stdout
+                const hash = execSync(`node scripts/sha256.js "${destPath}"`, { encoding: 'utf8' }).trim()
+                const size = fs.statSync(destPath).size
+
+                core.info(`  [HASH] ${asset.name}: ${hash} (${(size / 1024 / 1024).toFixed(2)} MB)`)
+
+                assetMetadata.push({
+                  platform,
+                  filename: asset.name,
+                  url:      asset.browser_download_url,
+                  sha256:   hash,
+                  size,
+                })
+              } catch (err) {
+                core.error(`  [FAIL] ${asset.name}: ${err.message}`)
+                failedAssets.push(asset.name)
+              }
+            }
+
+            // ── Fail fast if any asset could not be downloaded/hashed ──────
+            if (failedAssets.length > 0) {
+              core.setOutput('failed_assets', failedAssets.join(', '))
+              core.setFailed(`The following assets failed after all retries: ${failedAssets.join(', ')}`)
+              return
+            }
+
+            // ── Write temp metadata files for update-hashes.js ────────────
+            const assetsJsonPath  = '/tmp/assets.json'
+            const releaseJsonPath = '/tmp/release.json'
+
+            // Strip the leading 'v' from the tag if present (e.g. v1.2.3 → 1.2.3)
+            const version = tag.replace(/^v/, '')
+
+            const releaseInfo = {
+              version,
+              releaseDate:     new Date().toISOString().slice(0, 10),  // YYYY-MM-DD
+              prerelease:      release.prerelease,
+              releaseNotes:    release.body ?? '',
+              releaseNotesUrl: `https://github.com/${context.repo.owner}/${context.repo.repo}/releases/tag/${tag}`,
+              mandatory:       false,
+            }
+
+            fs.writeFileSync(assetsJsonPath,  JSON.stringify(assetMetadata, null, 2), 'utf8')
+            fs.writeFileSync(releaseJsonPath, JSON.stringify(releaseInfo,   null, 2), 'utf8')
+
+            core.info(`Wrote ${assetMetadata.length} asset(s) to ${assetsJsonPath}`)
+            core.setOutput('version', version)
+
+      # ── Skip remainder if no binary assets were found ─────────────────────
+      - name: Check for assets
+        if: steps.compute-hashes.outputs.has_assets == 'false'
+        run: |
+          echo "No binary assets found on this release. Nothing to update."
+          exit 0
+
+      # ── Write latest.json ──────────────────────────────────────────────────
+      - name: Update latest.json
+        if: steps.compute-hashes.outputs.has_assets == 'true'
+        run: node scripts/update-hashes.js /tmp/assets.json /tmp/release.json
+
+      # ── Commit and push ────────────────────────────────────────────────────
+      - name: Commit and push latest.json
+        if: steps.compute-hashes.outputs.has_assets == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add latest.json
+
+          # Exit cleanly if there's nothing new to commit (idempotent re-runs)
+          if git diff --cached --quiet; then
+            echo "latest.json is already up to date — nothing to commit."
+            exit 0
+          fi
+
+          VERSION="${{ steps.compute-hashes.outputs.version }}"
+          git commit -m "chore: update latest.json for release v${VERSION} [skip ci]"
+          git push

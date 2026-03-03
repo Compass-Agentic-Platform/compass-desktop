@@ -4,6 +4,7 @@
   "releaseNotes": "### What's New\n- Initial release of Compass Desktop",
   "releaseNotesUrl": "https://github.com/compassap/compass-desktop/blob/main/CHANGELOG.md",
   "mandatory": false,
+  "prerelease": false,
   "platforms": {
     "win32-x64": {
       "url": "https://raw.githubusercontent.com/compassap/compass-desktop-releases/main/v1.0.0/Compass-Desktop-1.0.0-portable.exe",
