@@ -1,0 +1,14 @@
+﻿blank_issues_enabled: false
+
+contact_links:
+  - name: Compass Desktop Documentation
+    url: https://docs.compassap.ai/desktop
+    about: Browse the official documentation for setup guides, feature references, and troubleshooting.
+
+  - name: Compass Platform
+    url: https://compassap.ai/
+    about: Account, subscription, and platform-level questions — log in to the Compass Platform.
+
+  - name: Nova CLI Issues
+    url: https://github.com/Compass-Agentic-Platform/nova/issues
+    about: Issues specific to the Nova CLI (the AI engine powering Compass Desktop) belong in the Nova repository.

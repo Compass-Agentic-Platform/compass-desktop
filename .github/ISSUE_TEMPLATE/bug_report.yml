@@ -1,0 +1,155 @@
+﻿name: Bug Report
+description: Report a bug or unexpected behaviour in Compass Desktop
+title: "[Bug]: "
+labels: ["bug"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. The more detail you provide, the faster we can investigate and fix it.
+        Please search [existing issues](https://github.com/Compass-Agentic-Platform/compass-desktop/issues) before submitting to avoid duplicates.
+
+  - type: dropdown
+    id: subsystem
+    attributes:
+      label: Affected Area
+      description: Which part of Compass Desktop is affected?
+      options:
+        - Chat / AI Interface
+        - ACP Mode (Persistent Connection)
+        - Cron Scheduler
+        - WhatsApp Integration
+        - Marketplace
+        - Knowledge Base
+        - Resource Editor (.compass)
+        - Audit Log
+        - Security / Credentials
+        - Proxy / Networking
+        - Installation / Auto-Update
+        - Settings / Configuration
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: "e.g. The ACP connection drops silently after ~10 minutes of inactivity with no reconnection attempt."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Step-by-step instructions to reliably reproduce the issue.
+      placeholder: |
+        1. Open Compass Desktop and start a new chat
+        2. Enable ACP Mode from chat settings
+        3. Leave the chat idle for 10+ minutes
+        4. Send a message — observe the error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behaviour
+      description: What did you expect to happen?
+      placeholder: "The ACP connection should reconnect automatically or show a clear reconnection prompt."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behaviour
+      description: What actually happened instead?
+      placeholder: "The message is sent but no response is received. No error is shown in the UI."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Operating System
+      description: Which OS are you running Compass Desktop on?
+      options:
+        - Windows 10
+        - Windows 11
+        - macOS 12 (Monterey)
+        - macOS 13 (Ventura)
+        - macOS 14 (Sonoma)
+        - macOS 15 (Sequoia)
+        - Ubuntu 20.04 LTS
+        - Ubuntu 22.04 LTS
+        - Ubuntu 24.04 LTS
+        - Other Linux
+    validations:
+      required: true
+
+  - type: input
+    id: app_version
+    attributes:
+      label: Compass Desktop Version
+      description: "Found in the title bar or About screen (e.g. 1.2.0)."
+      placeholder: "1.2.0"
+    validations:
+      required: true
+
+  - type: input
+    id: nova_version
+    attributes:
+      label: Nova CLI Version
+      description: "Run nova --version in a terminal. Nova is the AI engine powering Compass Desktop."
+      placeholder: "e.g. 2.1.0"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: connection_mode
+    attributes:
+      label: Connection Mode
+      description: Which mode were you using when the bug occurred?
+      options:
+        - SDK Mode (default)
+        - ACP Mode (experimental)
+        - Not applicable
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Error Output
+      description: |
+        Paste any relevant logs, error messages, or stack traces here.
+        Open DevTools via Help > Toggle Developer Tools to access the console.
+      render: shell
+      placeholder: "Paste logs here..."
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Screenshots, screen recordings, or any other context that might help diagnose the issue.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues and this is not a duplicate
+          required: true
+        - label: I am using the latest version of Compass Desktop
+          required: false
+        - label: I have included steps to reproduce the issue
+          required: true

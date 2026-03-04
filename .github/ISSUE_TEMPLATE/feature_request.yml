@@ -1,0 +1,97 @@
+﻿name: Feature Request
+description: Suggest a new feature or improvement for Compass Desktop
+title: "[Feature]: "
+labels: ["enhancement"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Got an idea that would make Compass Desktop better? We would love to hear it.
+        Please search [existing issues](https://github.com/Compass-Agentic-Platform/compass-desktop/issues) first to avoid duplicates.
+
+  - type: dropdown
+    id: feature_area
+    attributes:
+      label: Feature Area
+      description: Which part of Compass Desktop does this feature relate to?
+      options:
+        - Chat / AI Interface
+        - ACP Mode (Persistent Connection)
+        - Cron Scheduler
+        - WhatsApp Integration
+        - Marketplace
+        - Knowledge Base
+        - Resource Editor (.compass)
+        - Audit Log
+        - Security / Credentials
+        - Proxy / Networking
+        - Installation / Auto-Update
+        - Settings / Configuration
+        - New Area / Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: |
+        What problem does this feature solve? Describe the pain point or limitation you are experiencing.
+        Focus on the "why" — what are you trying to accomplish?
+      placeholder: "e.g. When using ACP Mode with multiple projects, I have no way to see which project the active session belongs to without switching tabs manually."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the feature or change you would like to see. Be as specific as you can.
+      placeholder: "e.g. Show the active project name and path in the chat header when ACP Mode is enabled, with a quick-switch dropdown to change projects without restarting the connection."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority (Self-Assessment)
+      description: How important is this feature to your workflow?
+      options:
+        - Critical — blocking my work
+        - High — would significantly improve my workflow
+        - Medium — nice to have
+        - Low — minor improvement
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any workarounds or alternative approaches? What are their limitations?
+      placeholder: "e.g. I currently keep a sticky note with the project name, but this breaks down when switching between 5+ projects."
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: |
+        Mockups, screenshots, links to similar features in other tools, or any other context that helps illustrate the request.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues and this feature has not already been requested
+          required: true
+        - label: I have checked the documentation at docs.compassap.ai/desktop and this feature does not already exist
+          required: false
+        - label: I would be willing to contribute a pull request for this feature
+          required: false

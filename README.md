@@ -259,6 +259,16 @@ Browse marketplace → Install "code-review" plugin
 
 ---
 
+
+## Contributing & Feedback
+
+Found a bug or have a feature idea? Use the structured issue templates to help us triage and respond faster:
+
+- [Report a Bug](https://github.com/Compass-Agentic-Platform/compass-desktop/issues/new?template=bug_report.yml) -- include your OS, app version, and steps to reproduce
+- [Request a Feature](https://github.com/Compass-Agentic-Platform/compass-desktop/issues/new?template=feature_request.yml) -- describe the problem and your proposed solution
+
+---
+
 ## 🔗 Links
 
 - [Compass Platform](https://compassap.ai/)
