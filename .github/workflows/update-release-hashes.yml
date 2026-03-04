@@ -117,22 +117,26 @@ jobs:
               let lastError
               for (let attempt = 1; attempt <= maxRetries; attempt++) {
                 try {
-                  // Use the Octokit streaming endpoint so the token is sent
-                  // correctly (release assets redirect to S3 with a signed URL).
-                  const response = await github.rest.repos.getReleaseAsset({
-                    owner:    context.repo.owner,
-                    repo:     context.repo.repo,
-                    asset_id: asset.id,
-                    headers:  { Accept: 'application/octet-stream' },
+                  const token = process.env.GITHUB_TOKEN
+                  const response = await fetch(asset.url, {
+                    headers: {
+                      Accept: 'application/octet-stream',
+                      Authorization: `Bearer ${token}`,
+                    },
+                    redirect: 'follow',
                   })
 
-                  // The response data is a Buffer when Accept is octet-stream
-                  fs.writeFileSync(destPath, Buffer.from(response.data))
+                  if (!response.ok) {
+                    throw new Error(`HTTP ${response.status} ${response.statusText}`)
+                  }
+
+                  const buffer = Buffer.from(await response.arrayBuffer())
+                  fs.writeFileSync(destPath, buffer)
                   core.info(`  [OK] Downloaded ${asset.name} (attempt ${attempt})`)
                   return
                 } catch (err) {
                   lastError = err
-                  const delay = Math.pow(2, attempt - 1) * 1000  // 1s, 2s, 4s
+                  const delay = Math.pow(2, attempt - 1) * 1000
                   core.warning(`  [RETRY] ${asset.name} attempt ${attempt} failed: ${err.message}. Retrying in ${delay}ms…`)
                   await new Promise(r => setTimeout(r, delay))
                 }
