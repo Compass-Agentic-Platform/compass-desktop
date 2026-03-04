@@ -66,6 +66,8 @@ jobs:
       - name: Download assets and compute hashes
         id: compute-hashes
         uses: actions/github-script@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           script: |
             const fs   = require('fs')
