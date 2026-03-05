@@ -277,11 +277,60 @@ jobs:
           echo "Entitlements file is valid."
 
       # -----------------------------------------------------------------------
-      # 8. Build the macOS app, sign it, and run the notarize afterSign hook
+      # 8. Inject notarize configuration for electron-builder v24+
+      #
+      #    In electron-builder v24+, notarization is NOT automatic from env
+      #    vars alone. The build config must include an explicit mac.notarize
+      #    block with appBundleId and teamId. Without it, MacPackager throws:
+      #      "Cannot destructure property 'appBundleId' of 'options' as it
+      #       is undefined"
+      #
+      #    We read appId from the source app's package.json (build.appId) and
+      #    write a minimal electron-builder override JSON that electron-builder
+      #    will merge with the existing config via the --config flag.
+      # -----------------------------------------------------------------------
+      - name: Inject notarize config
+        shell: bash
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          # Extract appId from the source app's build config
+          APP_ID="$(node -e "
+            const pkg = require('./source-app/package.json');
+            const id = (pkg.build && pkg.build.appId) || pkg.appId || '';
+            console.log(id);
+          ")"
+
+          if [ -z "$APP_ID" ]; then
+            echo "::error::Could not determine appId from source-app/package.json."
+            echo "::error::Add a 'build.appId' field (e.g. 'com.example.app') to the source app's package.json."
+            exit 1
+          fi
+
+          echo "Detected appId: $APP_ID"
+          echo "Team ID: $APPLE_TEAM_ID"
+
+          # Write the override config that electron-builder will merge
+          printf '%s\n' \
+            '{' \
+            '  "mac": {' \
+            '    "notarize": {' \
+            "      \"appBundleId\": \"$APP_ID\"," \
+            "      \"teamId\": \"$APPLE_TEAM_ID\"" \
+            '    }' \
+            '  }' \
+            '}' \
+            > source-app/electron-builder.override.json
+
+          echo "Override config written to source-app/electron-builder.override.json:"
+          cat source-app/electron-builder.override.json
+
+      # -----------------------------------------------------------------------
+      # 9. Build the macOS app, sign it, and notarize
       #
       #    electron-builder uses CSC_LINK / CSC_KEY_PASSWORD to sign the .app.
-      #    The afterSign hook in scripts/notarize.js submits to Apple's notary
-      #    service using the APPLE_* credentials below.
+      #    The --config flag merges our override (with mac.notarize) on top of
+      #    whatever config already exists in the source app's package.json.
       #
       #    Expected output: source-app/dist/*.dmg and source-app/dist/*.zip
       # -----------------------------------------------------------------------
@@ -303,10 +352,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm run build
-          npx electron-builder --mac --publish never
+          npx electron-builder --mac --publish never --config electron-builder.override.json
 
       # -----------------------------------------------------------------------
-      # 9. Staple the notarization ticket to the DMG
+      # 10. Staple the notarization ticket to the DMG
       #
       #    After notarization the ticket must be stapled so the app can be
       #    verified offline (without contacting Apple's servers).
@@ -330,7 +379,7 @@ jobs:
           echo "Notarization stapled and verified."
 
       # -----------------------------------------------------------------------
-      # 10. Find the latest GitHub Release and upload all build artifacts
+      # 11. Find the latest GitHub Release and upload all build artifacts
       #
       #    We use the GitHub REST API to:
       #      a) Fetch the latest release and its upload URL
