@@ -277,239 +277,129 @@ jobs:
           echo "Entitlements file is valid."
 
       # -----------------------------------------------------------------------
-      # 8. Detect and patch any custom afterSign notarize hook
+      # 8. Disable any afterSign notarize hook in the source app
       #
       #    Many Electron apps include a custom afterSign script (typically
       #    scripts/notarize.js) that calls @electron/notarize directly.
-      #    If such a script exists but doesn't pass teamId, notarization
-      #    fails with:
-      #      "The teamId property is required when using notarization
-      #       with password credentials"
+      #    These hooks are fragile — they may use outdated APIs, miss the
+      #    teamId parameter, or fail silently.
       #
-      #    This step:
-      #      a) Reads the source app's electron-builder config to find
-      #         any afterSign hook
-      #      b) If found, patches the script to include teamId from the
-      #         APPLE_TEAM_ID env var
-      #      c) If no afterSign hook exists, electron-builder handles
-      #         notarization natively (via mac.notarize: true)
+      #    Instead of patching the hook, we DISABLE it entirely and handle
+      #    all notarization ourselves in Step 11 using xcrun notarytool.
+      #    This gives us full control and clear error messages.
+      #
+      #    We disable the hook by:
+      #      a) Removing afterSign from package.json build config
+      #      b) Removing afterSign from standalone electron-builder configs
+      #      c) The override config in Step 9 also sets afterSign to null
       # -----------------------------------------------------------------------
-      - name: Detect and patch afterSign notarize hook
+      - name: Disable afterSign notarize hook
         shell: bash
         working-directory: source-app
         run: |
-          echo "=== Inspecting source app electron-builder configuration ==="
+          echo "=== Disabling any afterSign hooks (notarization handled in Step 11) ==="
 
-          # Gather the effective config from package.json and standalone config files
-          AFTER_SIGN=""
-
-          # Check package.json "build" section
+          # Remove afterSign from package.json build config
           if [ -f package.json ]; then
-            AFTER_SIGN_PKG=$(node -e "
-              try {
-                const pkg = require('./package.json');
-                const build = pkg.build || {};
-                if (build.afterSign) console.log(build.afterSign);
-              } catch(e) {}
+            HAS_AFTER_SIGN=$(node -e "
+              const pkg = require('./package.json');
+              if (pkg.build && pkg.build.afterSign) console.log(pkg.build.afterSign);
             " 2>/dev/null || true)
-            if [ -n "$AFTER_SIGN_PKG" ]; then
-              AFTER_SIGN="$AFTER_SIGN_PKG"
-              echo "Found afterSign in package.json: $AFTER_SIGN"
-            fi
-          fi
 
-          # Check standalone electron-builder config files
-          for CFG_FILE in electron-builder.json electron-builder.yml electron-builder.json5 electron-builder.toml; do
-            if [ -f "$CFG_FILE" ]; then
-              echo "Found config file: $CFG_FILE"
-              echo "Contents:"
-              cat "$CFG_FILE"
-              echo ""
-              # Extract afterSign from JSON config files
-              if [[ "$CFG_FILE" == *.json* ]]; then
-                AFTER_SIGN_CFG=$(node -e "
-                  try {
-                    const cfg = require('./$CFG_FILE');
-                    if (cfg.afterSign) console.log(cfg.afterSign);
-                  } catch(e) {}
-                " 2>/dev/null || true)
-                if [ -n "$AFTER_SIGN_CFG" ]; then
-                  AFTER_SIGN="$AFTER_SIGN_CFG"
-                  echo "Found afterSign in $CFG_FILE: $AFTER_SIGN"
-                fi
-              fi
-              # Extract afterSign from YAML config files
-              if [[ "$CFG_FILE" == *.yml ]]; then
-                AFTER_SIGN_YML=$(node -e "
-                  try {
-                    const fs = require('fs');
-                    const content = fs.readFileSync('./$CFG_FILE', 'utf8');
-                    const match = content.match(/afterSign:\s*[\"']?([^\"'\n]+)/);
-                    if (match) console.log(match[1].trim());
-                  } catch(e) {}
-                " 2>/dev/null || true)
-                if [ -n "$AFTER_SIGN_YML" ]; then
-                  AFTER_SIGN="$AFTER_SIGN_YML"
-                  echo "Found afterSign in $CFG_FILE: $AFTER_SIGN"
-                fi
-              fi
-            fi
-          done
-
-          # Also check for common notarize script locations even if not referenced
-          echo ""
-          echo "=== Scanning for notarize scripts ==="
-          for SCRIPT in scripts/notarize.js scripts/notarize.ts build/notarize.js build/notarize.ts afterSignHook.js; do
-            if [ -f "$SCRIPT" ]; then
-              echo "Found notarize script: $SCRIPT"
-              echo "--- Contents ---"
-              cat "$SCRIPT"
-              echo ""
-              echo "--- End ---"
-            fi
-          done
-
-          # If we found an afterSign hook, patch it to include teamId
-          if [ -n "$AFTER_SIGN" ]; then
-            echo ""
-            echo "=== Patching afterSign hook: $AFTER_SIGN ==="
-
-            # Resolve the script path (it might be relative, e.g. "scripts/notarize.js")
-            SCRIPT_PATH="$AFTER_SIGN"
-            # Add .js extension if missing
-            if [ ! -f "$SCRIPT_PATH" ] && [ -f "${SCRIPT_PATH}.js" ]; then
-              SCRIPT_PATH="${SCRIPT_PATH}.js"
-            fi
-
-            if [ -f "$SCRIPT_PATH" ]; then
-              echo "Patching $SCRIPT_PATH to include teamId..."
-              echo "Original content:"
-              cat "$SCRIPT_PATH"
-              echo ""
-
-              # Replace the script with a version that always includes teamId
-              # We write a complete replacement that handles all common patterns
-              printf '%s\n' \
-                'const { notarize } = require("@electron/notarize");' \
-                '' \
-                'exports.default = async function notarizing(context) {' \
-                '  const appName = context.packager.appInfo.productFilename;' \
-                '  const appPath = `${context.appOutDir}/${appName}.app`;' \
-                '' \
-                '  if (process.platform !== "darwin") {' \
-                '    console.log("Skipping notarization — not macOS");' \
-                '    return;' \
-                '  }' \
-                '' \
-                '  if (!process.env.APPLE_ID || !process.env.APPLE_TEAM_ID) {' \
-                '    console.log("Skipping notarization — APPLE_ID or APPLE_TEAM_ID not set");' \
-                '    return;' \
-                '  }' \
-                '' \
-                '  console.log(`Notarizing ${appPath}...`);' \
-                '  console.log(`  Apple ID: ${process.env.APPLE_ID}`);' \
-                '  console.log(`  Team ID:  ${process.env.APPLE_TEAM_ID}`);' \
-                '' \
-                '  await notarize({' \
-                '    tool: "notarytool",' \
-                '    appPath: appPath,' \
-                '    appleId: process.env.APPLE_ID,' \
-                '    appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD || process.env.APPLE_ID_PASSWORD,' \
-                '    teamId: process.env.APPLE_TEAM_ID,' \
-                '  });' \
-                '' \
-                '  console.log("Notarization complete.");' \
-                '};' \
-                > "$SCRIPT_PATH"
-
-              echo "Patched content:"
-              cat "$SCRIPT_PATH"
+            if [ -n "$HAS_AFTER_SIGN" ]; then
+              echo "Found afterSign in package.json: $HAS_AFTER_SIGN"
+              echo "Removing afterSign from package.json..."
+              node -e "
+                const fs = require('fs');
+                const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
+                if (pkg.build && pkg.build.afterSign) {
+                  delete pkg.build.afterSign;
+                  fs.writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\n');
+                  console.log('afterSign removed from package.json');
+                }
+              "
             else
-              echo "::warning::afterSign references '$AFTER_SIGN' but file not found at '$SCRIPT_PATH'"
-              echo "Will rely on electron-builder native notarization (mac.notarize: true)"
+              echo "No afterSign in package.json"
             fi
-          else
-            echo "No afterSign hook found — will use electron-builder native notarization"
           fi
+
+          # Remove afterSign from standalone electron-builder JSON config files
+          for CFG_FILE in electron-builder.json electron-builder.json5; do
+            if [ -f "$CFG_FILE" ]; then
+              HAS_AFTER_SIGN=$(node -e "
+                const cfg = require('./$CFG_FILE');
+                if (cfg.afterSign) console.log(cfg.afterSign);
+              " 2>/dev/null || true)
+
+              if [ -n "$HAS_AFTER_SIGN" ]; then
+                echo "Found afterSign in $CFG_FILE: $HAS_AFTER_SIGN"
+                echo "Removing afterSign from $CFG_FILE..."
+                node -e "
+                  const fs = require('fs');
+                  const cfg = JSON.parse(fs.readFileSync('./$CFG_FILE', 'utf8'));
+                  delete cfg.afterSign;
+                  fs.writeFileSync('./$CFG_FILE', JSON.stringify(cfg, null, 2) + '\n');
+                  console.log('afterSign removed from $CFG_FILE');
+                "
+              else
+                echo "No afterSign in $CFG_FILE"
+              fi
+            fi
+          done
+
+          # Remove afterSign from YAML config files
+          if [ -f electron-builder.yml ]; then
+            if grep -q 'afterSign' electron-builder.yml; then
+              echo "Found afterSign in electron-builder.yml — commenting it out"
+              sed -i.bak 's/^\(.*afterSign.*\)$/# DISABLED: \1/' electron-builder.yml
+              rm -f electron-builder.yml.bak
+              echo "Updated electron-builder.yml:"
+              cat electron-builder.yml
+            else
+              echo "No afterSign in electron-builder.yml"
+            fi
+          fi
+
+          echo ""
+          echo "All afterSign hooks disabled. Notarization will be handled in Step 11."
 
       # -----------------------------------------------------------------------
-      # 9. Write electron-builder override to enable notarization
+      # 9. Write electron-builder override — disable built-in notarization
       #
-      #    electron-builder v24.13+ reads notarization credentials from env
-      #    vars (APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID) when
-      #    mac.notarize is true.
+      #    We disable BOTH afterSign and mac.notarize in the override config.
+      #    All notarization is handled explicitly in Step 11 using
+      #    xcrun notarytool, which gives us:
+      #      - Full control over credentials
+      #      - Clear error messages on failure
+      #      - Ability to notarize both .app and DMG
+      #      - Retry logic for CDN propagation delays
       #
       #    The --config flag in step 10 merges this file on top of whatever
       #    config already exists in the source app.
-      #
-      #    IMPORTANT: If the source app has an afterSign hook (patched in
-      #    step 8), we keep mac.notarize: false to avoid double-notarization.
-      #    The afterSign hook handles notarization directly.
       # -----------------------------------------------------------------------
-      - name: Write electron-builder notarize override
+      - name: Write electron-builder override (no built-in notarization)
         shell: bash
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           # Diagnostic: confirm the secret is available at this step
           if [ -z "$APPLE_TEAM_ID" ]; then
-            echo "::error::APPLE_TEAM_ID secret is empty — notarization will fail."
+            echo "::error::APPLE_TEAM_ID secret is empty — notarization will fail in Step 11."
             exit 1
           fi
           echo "APPLE_TEAM_ID is set (length: ${#APPLE_TEAM_ID})"
 
-          # Check if the source app has an afterSign hook
-          HAS_AFTER_SIGN="false"
-          for SCRIPT in source-app/scripts/notarize.js source-app/scripts/notarize.ts source-app/build/notarize.js source-app/afterSignHook.js; do
-            if [ -f "$SCRIPT" ]; then
-              HAS_AFTER_SIGN="true"
-              echo "afterSign hook detected at $SCRIPT — notarization handled by hook"
-              break
-            fi
-          done
+          # Disable both afterSign and mac.notarize — Step 11 handles everything
+          printf '%s\n' \
+            '{' \
+            '  "afterSign": null,' \
+            '  "mac": {' \
+            '    "notarize": false' \
+            '  }' \
+            '}' \
+            > source-app/electron-builder.override.json
 
-          # Also check the config for afterSign reference
-          AFTER_SIGN_REF=$(node -e "
-            try {
-              const pkg = require('./source-app/package.json');
-              if (pkg.build && pkg.build.afterSign) { console.log('true'); process.exit(0); }
-            } catch(e) {}
-            try {
-              const cfg = require('./source-app/electron-builder.json');
-              if (cfg.afterSign) { console.log('true'); process.exit(0); }
-            } catch(e) {}
-            console.log('false');
-          " 2>/dev/null || echo "false")
-
-          if [ "$AFTER_SIGN_REF" = "true" ]; then
-            HAS_AFTER_SIGN="true"
-            echo "afterSign reference found in config — notarization handled by hook"
-          fi
-
-          if [ "$HAS_AFTER_SIGN" = "true" ]; then
-            # afterSign hook handles notarization — don't also enable mac.notarize
-            # to avoid double-notarization
-            printf '%s\n' \
-              '{' \
-              '  "mac": {' \
-              '    "notarize": false' \
-              '  }' \
-              '}' \
-              > source-app/electron-builder.override.json
-            echo "Override: mac.notarize = false (afterSign hook handles notarization)"
-          else
-            # No afterSign hook — use electron-builder native notarization
-            printf '%s\n' \
-              '{' \
-              '  "mac": {' \
-              '    "notarize": true' \
-              '  }' \
-              '}' \
-              > source-app/electron-builder.override.json
-            echo "Override: mac.notarize = true (native electron-builder notarization)"
-          fi
-
-          echo "Override config written:"
+          echo "Override config written (notarization disabled — handled in Step 11):"
           cat source-app/electron-builder.override.json
 
       # -----------------------------------------------------------------------
@@ -542,67 +432,146 @@ jobs:
           npx electron-builder --mac --publish never --config electron-builder.override.json
 
       # -----------------------------------------------------------------------
-      # 11. Notarize the DMG and staple the ticket
+      # 11. Notarize the .app and DMG, then staple tickets
       #
-      #    electron-builder's afterSign hook (if present) notarizes the .app
-      #    bundle, but NOT the DMG — the DMG is assembled afterwards. We
-      #    explicitly notarize the DMG here with notarytool, then staple.
+      #    We handle ALL notarization here using xcrun notarytool directly.
+      #    This is more reliable than electron-builder's built-in notarization
+      #    or afterSign hooks because:
+      #      - We control the exact credentials passed
+      #      - We get clear error messages on failure
+      #      - We can notarize both .app and DMG in sequence
+      #      - We can add retry logic for CDN propagation delays
       #
-      #    We also add a retry loop for the staple step because Apple's
-      #    CloudKit CDN can take a few minutes to propagate the ticket after
-      #    notarization completes, causing "Record not found" (Error 65) if
-      #    we staple immediately.
+      #    Sequence:
+      #      1. Store credentials in a notarytool profile (avoids passing
+      #         secrets as CLI args which can leak in logs)
+      #      2. Notarize the .app bundle inside the DMG
+      #      3. Notarize the DMG itself
+      #      4. Staple tickets to both with retry logic
       # -----------------------------------------------------------------------
-      - name: Notarize & staple DMG
+      - name: Notarize & staple .app and DMG
         shell: bash
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          DMG_FILE="$(find source-app/dist -name '*.dmg' | head -1)"
+          set -euo pipefail
 
+          # ---- Validate credentials before attempting notarization ----
+          echo "=== Credential validation ==="
+          if [ -z "${APPLE_ID:-}" ]; then
+            echo "::error::APPLE_ID is empty"
+            exit 1
+          fi
+          if [ -z "${APPLE_ID_PASSWORD:-}" ]; then
+            echo "::error::APPLE_ID_PASSWORD is empty"
+            exit 1
+          fi
+          if [ -z "${APPLE_TEAM_ID:-}" ]; then
+            echo "::error::APPLE_TEAM_ID is empty"
+            exit 1
+          fi
+          echo "APPLE_ID is set: ${APPLE_ID}"
+          echo "APPLE_TEAM_ID is set (length: ${#APPLE_TEAM_ID}): ${APPLE_TEAM_ID:0:3}..."
+          echo "APPLE_ID_PASSWORD is set (length: ${#APPLE_ID_PASSWORD})"
+
+          # ---- Store credentials in a notarytool keychain profile ----
+          # This avoids passing secrets as CLI arguments (which appear in
+          # process listings and can leak in logs). The profile is stored
+          # in the temporary build keychain.
+          echo ""
+          echo "=== Storing notarytool credentials in keychain profile ==="
+          xcrun notarytool store-credentials "AC_PASSWORD" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_ID_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID"
+          echo "Credentials stored in profile 'AC_PASSWORD'"
+
+          # ---- Find the DMG ----
+          DMG_FILE="$(find source-app/dist -name '*.dmg' | head -1)"
           if [ -z "$DMG_FILE" ]; then
             echo "::error::No .dmg file found in source-app/dist. Build may have failed."
             exit 1
           fi
-
+          echo ""
           echo "Found DMG: $DMG_FILE"
 
+          # ---- Find the .app bundle ----
+          # The .app is inside the mac/ or mac-arm64/ output directory
+          APP_FILE="$(find source-app/dist -name '*.app' -type d | head -1)"
+          if [ -n "$APP_FILE" ]; then
+            echo "Found .app: $APP_FILE"
+          else
+            echo "::warning::No .app bundle found in source-app/dist — will notarize DMG only"
+          fi
+
+          # ---- Helper function: notarize a file ----
+          notarize_file() {
+            local FILE="$1"
+            local LABEL="$2"
+            echo ""
+            echo "=== Submitting $LABEL for notarization ==="
+            echo "File: $FILE"
+
+            xcrun notarytool submit "$FILE" \
+              --keychain-profile "AC_PASSWORD" \
+              --wait \
+              --timeout 600
+
+            echo "$LABEL notarization complete."
+          }
+
+          # ---- Helper function: staple with retry ----
+          staple_file() {
+            local FILE="$1"
+            local LABEL="$2"
+            local MAX_ATTEMPTS=6
+            local WAIT_SECONDS=50
+            local ATTEMPT=0
+
+            echo ""
+            echo "=== Stapling ticket to $LABEL ==="
+
+            until xcrun stapler staple "$FILE"; do
+              ATTEMPT=$((ATTEMPT + 1))
+              if [ "$ATTEMPT" -ge "$MAX_ATTEMPTS" ]; then
+                echo "::error::xcrun stapler failed for $LABEL after $MAX_ATTEMPTS attempts."
+                exit 1
+              fi
+              echo "Staple attempt $ATTEMPT/$MAX_ATTEMPTS failed (ticket not yet propagated). Waiting ${WAIT_SECONDS}s..."
+              sleep "$WAIT_SECONDS"
+            done
+
+            echo "$LABEL stapled successfully."
+          }
+
+          # ---- Notarize the .app bundle (if found) ----
+          if [ -n "$APP_FILE" ]; then
+            # notarytool requires a zip for .app bundles
+            echo ""
+            echo "=== Zipping .app for notarization ==="
+            APP_ZIP="$(mktemp /tmp/app-notarize.XXXXXX.zip)"
+            ditto -c -k --keepParent "$APP_FILE" "$APP_ZIP"
+            echo "Zipped to: $APP_ZIP ($(du -h "$APP_ZIP" | cut -f1))"
+
+            notarize_file "$APP_ZIP" ".app bundle"
+            staple_file "$APP_FILE" ".app bundle"
+
+            rm -f "$APP_ZIP"
+          fi
+
           # ---- Notarize the DMG ----
-          # The afterSign hook (if any) only notarizes the .app bundle.
-          # We must also notarize the DMG so its ticket can be stapled.
-          echo "Submitting DMG for notarization..."
-          xcrun notarytool submit "$DMG_FILE" \
-            --apple-id "$APPLE_ID" \
-            --password "$APPLE_ID_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" \
-            --wait \
-            --timeout 600
+          notarize_file "$DMG_FILE" "DMG"
+          staple_file "$DMG_FILE" "DMG"
 
-          echo "DMG notarization complete."
-
-          # ---- Staple with retry ----
-          # Apple's CloudKit CDN can take a few minutes to propagate the
-          # ticket after notarization. Retry up to 6 times (5 min total).
-          MAX_ATTEMPTS=6
-          WAIT_SECONDS=50
-          ATTEMPT=0
-
-          until xcrun stapler staple "$DMG_FILE"; do
-            ATTEMPT=$((ATTEMPT + 1))
-            if [ "$ATTEMPT" -ge "$MAX_ATTEMPTS" ]; then
-              echo "::error::xcrun stapler failed after $MAX_ATTEMPTS attempts. Ticket not found in Apple CDN."
-              exit 1
-            fi
-            echo "Staple attempt $ATTEMPT failed (ticket not yet propagated). Waiting ${WAIT_SECONDS}s before retry..."
-            sleep "$WAIT_SECONDS"
-          done
-
-          echo "Verifying Gatekeeper acceptance..."
+          # ---- Verify Gatekeeper acceptance ----
+          echo ""
+          echo "=== Verifying Gatekeeper acceptance ==="
           spctl --assess --type open --context context:primary-signature -v "$DMG_FILE"
 
-          echo "Notarization stapled and verified."
+          echo ""
+          echo "All notarization and stapling complete."
 
       # -----------------------------------------------------------------------
       # 12. Find the latest GitHub Release and upload all build artifacts
