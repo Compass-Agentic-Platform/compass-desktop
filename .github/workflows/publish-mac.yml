@@ -279,22 +279,36 @@ jobs:
       # -----------------------------------------------------------------------
       # 8. Write electron-builder override to enable notarization
       #
-      #    In electron-builder v24.13+, mac.notarize is a BOOLEAN, not an
-      #    object. Setting it to true tells electron-builder to notarize.
-      #    Credentials are passed entirely via environment variables in
-      #    step 9 (APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID).
+      #    electron-builder v24.13+ reads notarization credentials from env
+      #    vars (APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID) when
+      #    mac.notarize is true. However, the bundled @electron/notarize inside
+      #    app-builder-lib may be an older version that requires teamId to be
+      #    passed explicitly in the config object.
+      #
+      #    We therefore write the override with mac.notarize as a boolean true
+      #    AND separately echo the APPLE_TEAM_ID for diagnostics. The env vars
+      #    set in step 9 are what electron-builder's getNotarizeOptions() reads:
+      #      APPLE_ID                    → appleId
+      #      APPLE_APP_SPECIFIC_PASSWORD → appleIdPassword
+      #      APPLE_TEAM_ID               → teamId
       #
       #    The --config flag in step 9 merges this file on top of whatever
       #    config already exists in the source app.
-      #
-      #    Reference: https://www.electron.build/mac
-      #      "notarize?: boolean — Whether to disable electron-builder's
-      #       @electron/notarize integration. Credentials must be provided
-      #       via APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD + APPLE_TEAM_ID."
       # -----------------------------------------------------------------------
       - name: Write electron-builder notarize override
         shell: bash
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
+          # Diagnostic: confirm the secret is available at this step
+          if [ -z "$APPLE_TEAM_ID" ]; then
+            echo "::error::APPLE_TEAM_ID secret is empty — notarization will fail."
+            exit 1
+          fi
+          echo "APPLE_TEAM_ID is set (length: ${#APPLE_TEAM_ID})"
+
+          # Write the override. mac.notarize: true tells electron-builder to
+          # notarize; credentials come entirely from env vars in step 9.
           printf '%s\n' \
             '{' \
             '  "mac": {' \
