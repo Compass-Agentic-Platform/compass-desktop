@@ -542,13 +542,23 @@ jobs:
           npx electron-builder --mac --publish never --config electron-builder.override.json
 
       # -----------------------------------------------------------------------
-      # 11. Staple the notarization ticket to the DMG
+      # 11. Notarize the DMG and staple the ticket
       #
-      #    After notarization the ticket must be stapled so the app can be
-      #    verified offline (without contacting Apple's servers).
+      #    electron-builder's afterSign hook (if present) notarizes the .app
+      #    bundle, but NOT the DMG — the DMG is assembled afterwards. We
+      #    explicitly notarize the DMG here with notarytool, then staple.
+      #
+      #    We also add a retry loop for the staple step because Apple's
+      #    CloudKit CDN can take a few minutes to propagate the ticket after
+      #    notarization completes, causing "Record not found" (Error 65) if
+      #    we staple immediately.
       # -----------------------------------------------------------------------
-      - name: Staple notarization ticket
+      - name: Notarize & staple DMG
         shell: bash
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           DMG_FILE="$(find source-app/dist -name '*.dmg' | head -1)"
 
@@ -557,8 +567,37 @@ jobs:
             exit 1
           fi
 
-          echo "Stapling notarization ticket to: $DMG_FILE"
-          xcrun stapler staple "$DMG_FILE"
+          echo "Found DMG: $DMG_FILE"
+
+          # ---- Notarize the DMG ----
+          # The afterSign hook (if any) only notarizes the .app bundle.
+          # We must also notarize the DMG so its ticket can be stapled.
+          echo "Submitting DMG for notarization..."
+          xcrun notarytool submit "$DMG_FILE" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_ID_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait \
+            --timeout 600
+
+          echo "DMG notarization complete."
+
+          # ---- Staple with retry ----
+          # Apple's CloudKit CDN can take a few minutes to propagate the
+          # ticket after notarization. Retry up to 6 times (5 min total).
+          MAX_ATTEMPTS=6
+          WAIT_SECONDS=50
+          ATTEMPT=0
+
+          until xcrun stapler staple "$DMG_FILE"; do
+            ATTEMPT=$((ATTEMPT + 1))
+            if [ "$ATTEMPT" -ge "$MAX_ATTEMPTS" ]; then
+              echo "::error::xcrun stapler failed after $MAX_ATTEMPTS attempts. Ticket not found in Apple CDN."
+              exit 1
+            fi
+            echo "Staple attempt $ATTEMPT failed (ticket not yet propagated). Waiting ${WAIT_SECONDS}s before retry..."
+            sleep "$WAIT_SECONDS"
+          done
 
           echo "Verifying Gatekeeper acceptance..."
           spctl --assess --type open --context context:primary-signature -v "$DMG_FILE"
