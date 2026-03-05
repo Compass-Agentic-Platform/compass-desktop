@@ -307,6 +307,13 @@ jobs:
                -o -name 'electron-builder.json5' \) \
             -print
 
+          echo "=== electron-builder.json contents (if present) ==="
+          [ -f 'source-app/electron-builder.json' ] && cat source-app/electron-builder.json || echo "(not found)"
+
+          echo "=== electron-builder.yml contents (if present) ==="
+          [ -f 'source-app/electron-builder.yml' ]  && cat source-app/electron-builder.yml  || echo "(not found)"
+          [ -f 'source-app/electron-builder.yaml' ] && cat source-app/electron-builder.yaml || echo "(not found)"
+
           # ---- Write helper scripts to temp files (avoids quote conflicts in YAML) ----
 
           # Script 1: extract appId from package.json
@@ -322,11 +329,22 @@ jobs:
             > /tmp/get-appid-pkg.js
 
           # Script 2: extract appId from electron-builder.json
+          # Tries top-level appId, then build.appId, then config.appId.
+          # Prints the parse error to stderr so failures are visible.
           printf '%s\n' \
             'try {' \
-            '  var cfg = require("./source-app/electron-builder.json");' \
-            '  process.stdout.write(cfg.appId || "");' \
-            '} catch(e) { process.exit(0); }' \
+            '  var fs = require("fs");' \
+            '  var raw = fs.readFileSync("./source-app/electron-builder.json", "utf8");' \
+            '  var cfg = JSON.parse(raw);' \
+            '  var id = cfg.appId' \
+            '    || (cfg.build && cfg.build.appId)' \
+            '    || (cfg.config && cfg.config.appId)' \
+            '    || "";' \
+            '  process.stdout.write(id);' \
+            '} catch(e) {' \
+            '  process.stderr.write("electron-builder.json parse error: " + e.message + "\n");' \
+            '  process.exit(0);' \
+            '}' \
             > /tmp/get-appid-json.js
 
           # Script 3: extract appId from a YAML file passed as sys.argv[1]
