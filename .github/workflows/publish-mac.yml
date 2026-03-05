@@ -277,132 +277,33 @@ jobs:
           echo "Entitlements file is valid."
 
       # -----------------------------------------------------------------------
-      # 8. Inject notarize configuration for electron-builder v24+
+      # 8. Write electron-builder override to enable notarization
       #
-      #    In electron-builder v24+, notarization is NOT automatic from env
-      #    vars alone. The build config must include an explicit mac.notarize
-      #    block with appBundleId and teamId. Without it, MacPackager throws:
-      #      "Cannot destructure property 'appBundleId' of 'options' as it
-      #       is undefined"
+      #    In electron-builder v24.13+, mac.notarize is a BOOLEAN, not an
+      #    object. Setting it to true tells electron-builder to notarize.
+      #    Credentials are passed entirely via environment variables in
+      #    step 9 (APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID).
       #
-      #    We read appId from the source app's package.json (build.appId) and
-      #    write a minimal electron-builder override JSON that electron-builder
-      #    will merge with the existing config via the --config flag.
+      #    The --config flag in step 9 merges this file on top of whatever
+      #    config already exists in the source app.
+      #
+      #    Reference: https://www.electron.build/mac
+      #      "notarize?: boolean — Whether to disable electron-builder's
+      #       @electron/notarize integration. Credentials must be provided
+      #       via APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD + APPLE_TEAM_ID."
       # -----------------------------------------------------------------------
-      - name: Inject notarize config
+      - name: Write electron-builder notarize override
         shell: bash
-        env:
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          # ---- Debug: show what config files are present ----
-          echo "=== source-app/package.json (build section) ==="
-          node -e 'const p=require("./source-app/package.json");console.log(JSON.stringify(p.build||{},null,2))' \
-            || echo "(could not parse package.json)"
-
-          echo "=== Searching for electron-builder config files ==="
-          find source-app -maxdepth 2 \
-            \( -name 'electron-builder.yml' \
-               -o -name 'electron-builder.yaml' \
-               -o -name 'electron-builder.json' \
-               -o -name 'electron-builder.json5' \) \
-            -print
-
-          echo "=== electron-builder.json contents (if present) ==="
-          [ -f 'source-app/electron-builder.json' ] && cat source-app/electron-builder.json || echo "(not found)"
-
-          echo "=== electron-builder.yml contents (if present) ==="
-          [ -f 'source-app/electron-builder.yml' ]  && cat source-app/electron-builder.yml  || echo "(not found)"
-          [ -f 'source-app/electron-builder.yaml' ] && cat source-app/electron-builder.yaml || echo "(not found)"
-
-          # ---- Write helper scripts to temp files (avoids quote conflicts in YAML) ----
-
-          # Script 1: extract appId from package.json
-          printf '%s\n' \
-            'try {' \
-            '  var pkg = require("./source-app/package.json");' \
-            '  var id = (pkg.build && pkg.build.appId) || pkg.appId || "";' \
-            '  process.stdout.write(id);' \
-            '} catch(e) {' \
-            '  process.stderr.write("node error: " + e.message + "\n");' \
-            '  process.exit(0);' \
-            '}' \
-            > /tmp/get-appid-pkg.js
-
-          # Script 2: extract appId from electron-builder.json
-          # Tries top-level appId, then build.appId, then config.appId.
-          # Prints the parse error to stderr so failures are visible.
-          printf '%s\n' \
-            'try {' \
-            '  var fs = require("fs");' \
-            '  var raw = fs.readFileSync("./source-app/electron-builder.json", "utf8");' \
-            '  var cfg = JSON.parse(raw);' \
-            '  var id = cfg.appId' \
-            '    || (cfg.build && cfg.build.appId)' \
-            '    || (cfg.config && cfg.config.appId)' \
-            '    || "";' \
-            '  process.stdout.write(id);' \
-            '} catch(e) {' \
-            '  process.stderr.write("electron-builder.json parse error: " + e.message + "\n");' \
-            '  process.exit(0);' \
-            '}' \
-            > /tmp/get-appid-json.js
-
-          # Script 3: extract appId from a YAML file passed as sys.argv[1]
-          printf '%s\n' \
-            'import sys, re' \
-            'with open(sys.argv[1]) as f:' \
-            '    content = f.read()' \
-            'm = re.search(r"^appId:\\s*\\"?([\\w.\\-]+)\\"?", content, re.MULTILINE)' \
-            'if m:' \
-            '    sys.stdout.write(m.group(1))' \
-            > /tmp/get-appid-yml.py
-
-          # ---- 1. Try package.json → build.appId ----
-          APP_ID=""
-          PKG_APP_ID="$(node /tmp/get-appid-pkg.js 2>/dev/null)"
-          [ -n "$PKG_APP_ID" ] && APP_ID="$PKG_APP_ID"
-
-          # ---- 2. Try electron-builder.json ----
-          if [ -z "$APP_ID" ] && [ -f 'source-app/electron-builder.json' ]; then
-            echo "Trying electron-builder.json..."
-            APP_ID="$(node /tmp/get-appid-json.js 2>/dev/null)"
-          fi
-
-          # ---- 3. Try electron-builder.yml / electron-builder.yaml ----
-          if [ -z "$APP_ID" ]; then
-            for YML_FILE in source-app/electron-builder.yml source-app/electron-builder.yaml; do
-              if [ -f "$YML_FILE" ]; then
-                echo "Trying $YML_FILE..."
-                APP_ID="$(python3 /tmp/get-appid-yml.py "$YML_FILE" 2>/dev/null)"
-                [ -n "$APP_ID" ] && break
-              fi
-            done
-          fi
-
-          # ---- Fail with actionable message if still empty ----
-          if [ -z "$APP_ID" ]; then
-            echo "::error::Could not determine appId from any electron-builder config."
-            echo "::error::Checked: package.json (build.appId), electron-builder.json, electron-builder.yml"
-            echo "::error::Add a 'build.appId' field (e.g. 'com.example.app') to source-app/package.json."
-            exit 1
-          fi
-
-          echo "Detected appId: $APP_ID"
-          echo "Team ID: $APPLE_TEAM_ID"
-
-          # Write the override config that electron-builder will merge
           printf '%s\n' \
             '{' \
             '  "mac": {' \
-            '    "notarize": {' \
-            "      \"appBundleId\": \"$APP_ID\"," \
-            "      \"teamId\": \"$APPLE_TEAM_ID\"" \
-            '    }' \
+            '    "notarize": true' \
             '  }' \
             '}' \
             > source-app/electron-builder.override.json
 
-          echo "Override config written to source-app/electron-builder.override.json:"
+          echo "Override config written:"
           cat source-app/electron-builder.override.json
 
       # -----------------------------------------------------------------------
