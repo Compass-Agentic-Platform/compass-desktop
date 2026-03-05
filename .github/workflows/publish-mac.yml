@@ -1,0 +1,394 @@
+# Compass Desktop - macOS Signed Release Publisher
+#
+# ============================================================
+# REQUIRED GITHUB SECRETS
+# ============================================================
+#
+#   KORE_DESKTOP_REPO           Full clone URL of the source repository, including
+#                             an embedded token for private access if needed.
+#                             Format: https://<token>@github.com/<org>/<repo>.git
+#
+#   MAC_CSC_LINK              Base64-encoded .p12 Developer ID Application certificate.
+#                             Generate with:
+#                               base64 -i certificate.p12 | tr -d '\n'
+#
+#   MAC_CSC_KEY_PASSWORD      Password protecting the .p12 certificate file.
+#
+#   APPLE_ID                  Apple ID email address used for notarization.
+#                             Example: developer@example.com
+#
+#   APPLE_ID_PASSWORD         App-specific password for the Apple ID above.
+#                             Generate at: https://appleid.apple.com/account/manage
+#
+#   APPLE_TEAM_ID             10-character Apple Developer Team ID.
+#                             Find it at: https://developer.apple.com/account
+#
+# ============================================================
+# PREREQUISITES
+# ============================================================
+#
+#   1. A GitHub Release must already exist in this repository before running
+#      this workflow. The upload step targets the LATEST existing release.
+#      If no release exists the workflow will fail with a descriptive error.
+#
+#   2. The source repository (KORE_DESKTOP_REPO) must contain a Node.js app
+#      with a package.json and a build script that produces macOS artifacts
+#      (DMG / ZIP) under a dist/ directory.
+#
+# ============================================================
+# HOW TO TRIGGER
+# ============================================================
+#
+#   1. Go to Actions → "Publish macOS (Signed)" → "Run workflow"
+#   2. Optionally specify a branch/tag from the source repo (default: main)
+#   3. Click "Run workflow"
+#
+# ============================================================
+
+name: Publish macOS (Signed)
+
+# ---------------------------------------------------------------------------
+# Trigger: manual only — no automatic push/tag triggers
+# ---------------------------------------------------------------------------
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch or tag to build from the source repository'
+        required: false
+        default: 'main'
+        type: string
+
+# ---------------------------------------------------------------------------
+# Shared non-secret environment variables
+# ---------------------------------------------------------------------------
+env:
+  ARTIFACT_DIR: source-app/dist
+
+# ---------------------------------------------------------------------------
+# Prevent concurrent runs of this workflow
+# ---------------------------------------------------------------------------
+concurrency:
+  group: publish-mac-${{ github.run_id }}
+  cancel-in-progress: false
+
+# ---------------------------------------------------------------------------
+# Token permissions — write access required to upload release assets
+# ---------------------------------------------------------------------------
+permissions:
+  contents: write
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Main job: clone → build → sign → notarize → upload to latest release
+  # ---------------------------------------------------------------------------
+  build-mac:
+    name: Build, Sign, Notarize & Upload to Latest Release
+    runs-on: macos-latest
+    environment: compass-desktop-build
+
+    steps:
+      # -----------------------------------------------------------------------
+      # 1. Validate that required secrets are present before doing any work
+      # -----------------------------------------------------------------------
+      - name: Validate required secrets
+        shell: bash
+        env:
+          KORE_DESKTOP_REPO: ${{ secrets.KORE_DESKTOP_REPO }}
+          MAC_CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          MAC_CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          MISSING=()
+          [ -z "$KORE_DESKTOP_REPO" ]      && MISSING+=("KORE_DESKTOP_REPO")
+          [ -z "$MAC_CSC_LINK" ]         && MISSING+=("MAC_CSC_LINK")
+          [ -z "$MAC_CSC_KEY_PASSWORD" ] && MISSING+=("MAC_CSC_KEY_PASSWORD")
+          [ -z "$APPLE_ID" ]             && MISSING+=("APPLE_ID")
+          [ -z "$APPLE_ID_PASSWORD" ]    && MISSING+=("APPLE_ID_PASSWORD")
+          [ -z "$APPLE_TEAM_ID" ]        && MISSING+=("APPLE_TEAM_ID")
+
+          if [ ${#MISSING[@]} -gt 0 ]; then
+            for secret in "${MISSING[@]}"; do
+              echo "::error::Required secret is not set: $secret"
+            done
+            exit 1
+          fi
+
+          echo "All required secrets are present."
+
+      # -----------------------------------------------------------------------
+      # 2. Clone the source repository from the secret URL
+      #    NOTE: We do NOT use actions/checkout here — the source lives in a
+      #    separate private repository referenced only via the secret URL.
+      #    The cloned code is placed in source-app/ to keep it isolated.
+      # -----------------------------------------------------------------------
+      - name: Clone source repository
+        shell: bash
+        env:
+          KORE_DESKTOP_REPO: ${{ secrets.KORE_DESKTOP_REPO }}
+        run: |
+          BRANCH="${{ github.event.inputs.branch }}"
+          BRANCH="${BRANCH:-main}"
+
+          echo "Cloning branch '$BRANCH' from source repository..."
+          git clone --depth 1 --branch "$BRANCH" "$KORE_DESKTOP_REPO" source-app
+
+          echo "Clone complete. Contents:"
+          ls -la source-app/
+
+      # -----------------------------------------------------------------------
+      # 3. Set up Node.js
+      #    Using Node 20 LTS. If the source repo ships an .nvmrc, you can
+      #    switch to: node-version-file: 'source-app/.nvmrc'
+      # -----------------------------------------------------------------------
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: source-app/package-lock.json
+
+      # Python is required by node-gyp for native modules (e.g. better-sqlite3, keytar)
+      - name: Set up Python (for node-gyp)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # -----------------------------------------------------------------------
+      # 4. Install dependencies inside the cloned source app
+      # -----------------------------------------------------------------------
+      - name: Install dependencies
+        working-directory: source-app
+        run: npm ci
+
+      # -----------------------------------------------------------------------
+      # 5. Import the Apple Developer certificate into a temporary keychain
+      #
+      #    We create an isolated 'build.keychain' rather than touching the
+      #    login keychain, so credentials never persist beyond this job.
+      #    The cleanup step (at the bottom, with if: always()) removes it.
+      # -----------------------------------------------------------------------
+      - name: Import Apple Developer certificate
+        shell: bash
+        env:
+          MAC_CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          MAC_CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+        run: |
+          # Decode the base64-encoded .p12 to a temporary file
+          CERT_FILE="$(mktemp /tmp/certificate.XXXXXX.p12)"
+          echo "$MAC_CSC_LINK" | base64 --decode > "$CERT_FILE"
+
+          # Create a dedicated build keychain with a known password
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 16)"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -lut 21600 build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+
+          # Import the certificate into the build keychain
+          security import "$CERT_FILE" \
+            -k build.keychain \
+            -P "$MAC_CSC_KEY_PASSWORD" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/security
+
+          # Allow codesign to access the key without a UI prompt
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" build.keychain
+
+          # Make build.keychain the default so codesign finds it
+          security list-keychains -d user -s build.keychain $(security list-keychains -d user | tr -d '"')
+          security default-keychain -s build.keychain
+
+          # Clean up the temporary .p12 file
+          rm -f "$CERT_FILE"
+
+          echo "Certificate imported successfully."
+
+      # -----------------------------------------------------------------------
+      # 6. Verify the signing identity is available before attempting to build
+      # -----------------------------------------------------------------------
+      - name: Verify signing identity
+        shell: bash
+        run: |
+          echo "Available code-signing identities:"
+          security find-identity -v -p codesigning build.keychain
+
+          # Fail fast if no Developer ID Application identity is found
+          if ! security find-identity -v -p codesigning build.keychain | grep -q "Developer ID Application"; then
+            echo "::error::No 'Developer ID Application' identity found in build.keychain."
+            echo "::error::Ensure MAC_CSC_LINK contains a valid Developer ID Application certificate."
+            exit 1
+          fi
+
+          echo "Signing identity verified."
+
+      # -----------------------------------------------------------------------
+      # 7. Build the macOS app, sign it, and run the notarize afterSign hook
+      #
+      #    electron-builder uses CSC_LINK / CSC_KEY_PASSWORD to sign the .app.
+      #    The afterSign hook in scripts/notarize.js submits to Apple's notary
+      #    service using the APPLE_* credentials below.
+      #
+      #    Expected output: source-app/dist/*.dmg and source-app/dist/*.zip
+      # -----------------------------------------------------------------------
+      - name: Build, sign & notarize
+        working-directory: source-app
+        shell: bash
+        env:
+          # Code signing — electron-builder reads these directly
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          # Notarization — consumed by scripts/notarize.js afterSign hook
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Prevent electron-builder from publishing — we handle that ourselves
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm run build
+          npx electron-builder --mac --publish never
+
+      # -----------------------------------------------------------------------
+      # 8. Staple the notarization ticket to the DMG
+      #
+      #    After notarization the ticket must be stapled so the app can be
+      #    verified offline (without contacting Apple's servers).
+      # -----------------------------------------------------------------------
+      - name: Staple notarization ticket
+        shell: bash
+        run: |
+          DMG_FILE="$(find source-app/dist -name '*.dmg' | head -1)"
+
+          if [ -z "$DMG_FILE" ]; then
+            echo "::error::No .dmg file found in source-app/dist. Build may have failed."
+            exit 1
+          fi
+
+          echo "Stapling notarization ticket to: $DMG_FILE"
+          xcrun stapler staple "$DMG_FILE"
+
+          echo "Verifying Gatekeeper acceptance..."
+          spctl --assess --type open --context context:primary-signature -v "$DMG_FILE"
+
+          echo "Notarization stapled and verified."
+
+      # -----------------------------------------------------------------------
+      # 9. Find the latest GitHub Release and upload all build artifacts
+      #
+      #    We use the GitHub REST API to:
+      #      a) Fetch the latest release and its upload URL
+      #      b) Delete any existing assets with the same filename (idempotency)
+      #      c) Upload each artifact (DMG, ZIP, blockmap, latest-mac.yml)
+      # -----------------------------------------------------------------------
+      - name: Upload artifacts to latest release
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO="${{ github.repository }}"
+          API="https://api.github.com/repos/${REPO}"
+
+          # ---- a) Get the latest release ----
+          echo "Fetching latest release for ${REPO}..."
+          RELEASE_JSON="$(curl -s \
+            -H "Authorization: token ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "${API}/releases/latest")"
+
+          RELEASE_ID="$(echo "$RELEASE_JSON" | jq -r '.id // empty')"
+          UPLOAD_URL="$(echo "$RELEASE_JSON" | jq -r '.upload_url // empty')"
+
+          if [ -z "$RELEASE_ID" ] || [ "$RELEASE_ID" = "null" ]; then
+            echo "::error::No existing GitHub Release found in ${REPO}."
+            echo "::error::Please create a release first, then re-run this workflow."
+            exit 1
+          fi
+
+          # Strip the {?name,label} template suffix from the upload URL
+          UPLOAD_URL="${UPLOAD_URL%%\{*}"
+          echo "Targeting release ID: ${RELEASE_ID}"
+          echo "Upload URL: ${UPLOAD_URL}"
+
+          # ---- b) Collect artifacts to upload ----
+          ARTIFACTS=()
+          while IFS= read -r -d '' f; do
+            ARTIFACTS+=("$f")
+          done < <(find source-app/dist \
+            \( -name '*.dmg' -o -name '*.zip' -o -name '*.blockmap' -o -name 'latest-mac.yml' \) \
+            -print0)
+
+          if [ ${#ARTIFACTS[@]} -eq 0 ]; then
+            echo "::error::No artifacts found in source-app/dist to upload."
+            exit 1
+          fi
+
+          echo "Artifacts to upload:"
+          printf '  %s\n' "${ARTIFACTS[@]}"
+
+          # ---- c) Fetch existing assets on the release ----
+          EXISTING_ASSETS="$(curl -s \
+            -H "Authorization: token ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "${API}/releases/${RELEASE_ID}/assets")"
+
+          # ---- d) Upload each artifact ----
+          for ARTIFACT in "${ARTIFACTS[@]}"; do
+            FILENAME="$(basename "$ARTIFACT")"
+
+            # Delete any existing asset with the same name (idempotent re-runs)
+            EXISTING_ID="$(echo "$EXISTING_ASSETS" | jq -r --arg name "$FILENAME" \
+              '.[] | select(.name == $name) | .id // empty')"
+
+            if [ -n "$EXISTING_ID" ]; then
+              echo "Deleting existing asset '${FILENAME}' (ID: ${EXISTING_ID})..."
+              curl -s -X DELETE \
+                -H "Authorization: token ${GITHUB_TOKEN}" \
+                -H "Accept: application/vnd.github.v3+json" \
+                "${API}/releases/assets/${EXISTING_ID}"
+            fi
+
+            # Determine MIME type
+            case "$FILENAME" in
+              *.dmg)       MIME="application/x-apple-diskimage" ;;
+              *.zip)       MIME="application/zip" ;;
+              *.blockmap)  MIME="application/octet-stream" ;;
+              *.yml|*.yaml) MIME="text/yaml" ;;
+              *)           MIME="application/octet-stream" ;;
+            esac
+
+            echo "Uploading '${FILENAME}' (${MIME})..."
+            HTTP_STATUS="$(curl -s -o /dev/null -w "%{http_code}" \
+              -X POST \
+              -H "Authorization: token ${GITHUB_TOKEN}" \
+              -H "Content-Type: ${MIME}" \
+              --data-binary @"$ARTIFACT" \
+              "${UPLOAD_URL}?name=${FILENAME}")"
+
+            if [[ "$HTTP_STATUS" != "20"* ]]; then
+              echo "::error::Upload of '${FILENAME}' failed with HTTP status ${HTTP_STATUS}."
+              exit 1
+            fi
+
+            echo "  Uploaded '${FILENAME}' — HTTP ${HTTP_STATUS}"
+          done
+
+          echo "All artifacts uploaded successfully."
+
+      # -----------------------------------------------------------------------
+      # CLEANUP — always runs, even if earlier steps fail
+      # Removes the temporary build keychain so credentials don't linger
+      # -----------------------------------------------------------------------
+      - name: Clean up build keychain
+        if: always()
+        shell: bash
+        run: |
+          if security list-keychains | grep -q "build.keychain"; then
+            echo "Removing temporary build keychain..."
+            security delete-keychain build.keychain || true
+            echo "Keychain removed."
+          else
+            echo "No build.keychain to clean up."
+          fi
