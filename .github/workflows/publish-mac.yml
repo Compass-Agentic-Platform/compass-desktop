@@ -292,9 +292,12 @@ jobs:
           # Code signing — electron-builder reads these directly
           CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
-          # Notarization — consumed by scripts/notarize.js afterSign hook
+          # Notarization — electron-builder v24+ uses APPLE_APP_SPECIFIC_PASSWORD;
+          # older versions (and custom notarize.js hooks) use APPLE_ID_PASSWORD.
+          # We set both to the same secret so the workflow works with either version.
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           # Prevent electron-builder from publishing — we handle that ourselves
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
