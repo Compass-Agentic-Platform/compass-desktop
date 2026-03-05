@@ -40,7 +40,7 @@
 # ============================================================
 #
 #   1. Go to Actions → "Publish macOS (Signed)" → "Run workflow"
-#   2. Optionally specify a branch/tag from the source repo (default: main)
+#   2. Optionally specify a branch/tag from the source repo (default: master)
 #   3. Click "Run workflow"
 #
 # ============================================================
@@ -56,7 +56,7 @@ on:
       branch:
         description: 'Branch or tag to build from the source repository'
         required: false
-        default: 'main'
+        default: 'master'
         type: string
 
 # ---------------------------------------------------------------------------
@@ -80,7 +80,7 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Main job: clone → build → sign → notarize → upload to latest release
+  # master job: clone → build → sign → notarize → upload to latest release
   # ---------------------------------------------------------------------------
   build-mac:
     name: Build, Sign, Notarize & Upload to Latest Release
@@ -130,7 +130,7 @@ jobs:
           KORE_DESKTOP_REPO: ${{ secrets.KORE_DESKTOP_REPO }}
         run: |
           BRANCH="${{ github.event.inputs.branch }}"
-          BRANCH="${BRANCH:-main}"
+          BRANCH="${BRANCH:-master}"
 
           echo "Cloning branch '$BRANCH' from source repository..."
           git clone --depth 1 --branch "$BRANCH" "$KORE_DESKTOP_REPO" source-app
