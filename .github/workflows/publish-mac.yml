@@ -295,11 +295,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           # Extract appId from the source app's build config
-          APP_ID="$(node -e "
-            const pkg = require('./source-app/package.json');
-            const id = (pkg.build && pkg.build.appId) || pkg.appId || '';
-            console.log(id);
-          ")"
+          APP_ID="$(node -e "const pkg = require('./source-app/package.json'); const id = (pkg.build && pkg.build.appId) || pkg.appId || ''; console.log(id);")"
 
           if [ -z "$APP_ID" ]; then
             echo "::error::Could not determine appId from source-app/package.json."
