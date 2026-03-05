@@ -277,23 +277,174 @@ jobs:
           echo "Entitlements file is valid."
 
       # -----------------------------------------------------------------------
-      # 8. Write electron-builder override to enable notarization
+      # 8. Detect and patch any custom afterSign notarize hook
+      #
+      #    Many Electron apps include a custom afterSign script (typically
+      #    scripts/notarize.js) that calls @electron/notarize directly.
+      #    If such a script exists but doesn't pass teamId, notarization
+      #    fails with:
+      #      "The teamId property is required when using notarization
+      #       with password credentials"
+      #
+      #    This step:
+      #      a) Reads the source app's electron-builder config to find
+      #         any afterSign hook
+      #      b) If found, patches the script to include teamId from the
+      #         APPLE_TEAM_ID env var
+      #      c) If no afterSign hook exists, electron-builder handles
+      #         notarization natively (via mac.notarize: true)
+      # -----------------------------------------------------------------------
+      - name: Detect and patch afterSign notarize hook
+        shell: bash
+        working-directory: source-app
+        run: |
+          echo "=== Inspecting source app electron-builder configuration ==="
+
+          # Gather the effective config from package.json and standalone config files
+          AFTER_SIGN=""
+
+          # Check package.json "build" section
+          if [ -f package.json ]; then
+            AFTER_SIGN_PKG=$(node -e "
+              try {
+                const pkg = require('./package.json');
+                const build = pkg.build || {};
+                if (build.afterSign) console.log(build.afterSign);
+              } catch(e) {}
+            " 2>/dev/null || true)
+            if [ -n "$AFTER_SIGN_PKG" ]; then
+              AFTER_SIGN="$AFTER_SIGN_PKG"
+              echo "Found afterSign in package.json: $AFTER_SIGN"
+            fi
+          fi
+
+          # Check standalone electron-builder config files
+          for CFG_FILE in electron-builder.json electron-builder.yml electron-builder.json5 electron-builder.toml; do
+            if [ -f "$CFG_FILE" ]; then
+              echo "Found config file: $CFG_FILE"
+              echo "Contents:"
+              cat "$CFG_FILE"
+              echo ""
+              # Extract afterSign from JSON config files
+              if [[ "$CFG_FILE" == *.json* ]]; then
+                AFTER_SIGN_CFG=$(node -e "
+                  try {
+                    const cfg = require('./$CFG_FILE');
+                    if (cfg.afterSign) console.log(cfg.afterSign);
+                  } catch(e) {}
+                " 2>/dev/null || true)
+                if [ -n "$AFTER_SIGN_CFG" ]; then
+                  AFTER_SIGN="$AFTER_SIGN_CFG"
+                  echo "Found afterSign in $CFG_FILE: $AFTER_SIGN"
+                fi
+              fi
+              # Extract afterSign from YAML config files
+              if [[ "$CFG_FILE" == *.yml ]]; then
+                AFTER_SIGN_YML=$(node -e "
+                  try {
+                    const fs = require('fs');
+                    const content = fs.readFileSync('./$CFG_FILE', 'utf8');
+                    const match = content.match(/afterSign:\s*[\"']?([^\"'\n]+)/);
+                    if (match) console.log(match[1].trim());
+                  } catch(e) {}
+                " 2>/dev/null || true)
+                if [ -n "$AFTER_SIGN_YML" ]; then
+                  AFTER_SIGN="$AFTER_SIGN_YML"
+                  echo "Found afterSign in $CFG_FILE: $AFTER_SIGN"
+                fi
+              fi
+            fi
+          done
+
+          # Also check for common notarize script locations even if not referenced
+          echo ""
+          echo "=== Scanning for notarize scripts ==="
+          for SCRIPT in scripts/notarize.js scripts/notarize.ts build/notarize.js build/notarize.ts afterSignHook.js; do
+            if [ -f "$SCRIPT" ]; then
+              echo "Found notarize script: $SCRIPT"
+              echo "--- Contents ---"
+              cat "$SCRIPT"
+              echo ""
+              echo "--- End ---"
+            fi
+          done
+
+          # If we found an afterSign hook, patch it to include teamId
+          if [ -n "$AFTER_SIGN" ]; then
+            echo ""
+            echo "=== Patching afterSign hook: $AFTER_SIGN ==="
+
+            # Resolve the script path (it might be relative, e.g. "scripts/notarize.js")
+            SCRIPT_PATH="$AFTER_SIGN"
+            # Add .js extension if missing
+            if [ ! -f "$SCRIPT_PATH" ] && [ -f "${SCRIPT_PATH}.js" ]; then
+              SCRIPT_PATH="${SCRIPT_PATH}.js"
+            fi
+
+            if [ -f "$SCRIPT_PATH" ]; then
+              echo "Patching $SCRIPT_PATH to include teamId..."
+              echo "Original content:"
+              cat "$SCRIPT_PATH"
+              echo ""
+
+              # Replace the script with a version that always includes teamId
+              # We write a complete replacement that handles all common patterns
+              printf '%s\n' \
+                'const { notarize } = require("@electron/notarize");' \
+                '' \
+                'exports.default = async function notarizing(context) {' \
+                '  const appName = context.packager.appInfo.productFilename;' \
+                '  const appPath = `${context.appOutDir}/${appName}.app`;' \
+                '' \
+                '  if (process.platform !== "darwin") {' \
+                '    console.log("Skipping notarization — not macOS");' \
+                '    return;' \
+                '  }' \
+                '' \
+                '  if (!process.env.APPLE_ID || !process.env.APPLE_TEAM_ID) {' \
+                '    console.log("Skipping notarization — APPLE_ID or APPLE_TEAM_ID not set");' \
+                '    return;' \
+                '  }' \
+                '' \
+                '  console.log(`Notarizing ${appPath}...`);' \
+                '  console.log(`  Apple ID: ${process.env.APPLE_ID}`);' \
+                '  console.log(`  Team ID:  ${process.env.APPLE_TEAM_ID}`);' \
+                '' \
+                '  await notarize({' \
+                '    tool: "notarytool",' \
+                '    appPath: appPath,' \
+                '    appleId: process.env.APPLE_ID,' \
+                '    appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD || process.env.APPLE_ID_PASSWORD,' \
+                '    teamId: process.env.APPLE_TEAM_ID,' \
+                '  });' \
+                '' \
+                '  console.log("Notarization complete.");' \
+                '};' \
+                > "$SCRIPT_PATH"
+
+              echo "Patched content:"
+              cat "$SCRIPT_PATH"
+            else
+              echo "::warning::afterSign references '$AFTER_SIGN' but file not found at '$SCRIPT_PATH'"
+              echo "Will rely on electron-builder native notarization (mac.notarize: true)"
+            fi
+          else
+            echo "No afterSign hook found — will use electron-builder native notarization"
+          fi
+
+      # -----------------------------------------------------------------------
+      # 9. Write electron-builder override to enable notarization
       #
       #    electron-builder v24.13+ reads notarization credentials from env
       #    vars (APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID) when
-      #    mac.notarize is true. However, the bundled @electron/notarize inside
-      #    app-builder-lib may be an older version that requires teamId to be
-      #    passed explicitly in the config object.
+      #    mac.notarize is true.
       #
-      #    We therefore write the override with mac.notarize as a boolean true
-      #    AND separately echo the APPLE_TEAM_ID for diagnostics. The env vars
-      #    set in step 9 are what electron-builder's getNotarizeOptions() reads:
-      #      APPLE_ID                    → appleId
-      #      APPLE_APP_SPECIFIC_PASSWORD → appleIdPassword
-      #      APPLE_TEAM_ID               → teamId
-      #
-      #    The --config flag in step 9 merges this file on top of whatever
+      #    The --config flag in step 10 merges this file on top of whatever
       #    config already exists in the source app.
+      #
+      #    IMPORTANT: If the source app has an afterSign hook (patched in
+      #    step 8), we keep mac.notarize: false to avoid double-notarization.
+      #    The afterSign hook handles notarization directly.
       # -----------------------------------------------------------------------
       - name: Write electron-builder notarize override
         shell: bash
@@ -307,21 +458,62 @@ jobs:
           fi
           echo "APPLE_TEAM_ID is set (length: ${#APPLE_TEAM_ID})"
 
-          # Write the override. mac.notarize: true tells electron-builder to
-          # notarize; credentials come entirely from env vars in step 9.
-          printf '%s\n' \
-            '{' \
-            '  "mac": {' \
-            '    "notarize": true' \
-            '  }' \
-            '}' \
-            > source-app/electron-builder.override.json
+          # Check if the source app has an afterSign hook
+          HAS_AFTER_SIGN="false"
+          for SCRIPT in source-app/scripts/notarize.js source-app/scripts/notarize.ts source-app/build/notarize.js source-app/afterSignHook.js; do
+            if [ -f "$SCRIPT" ]; then
+              HAS_AFTER_SIGN="true"
+              echo "afterSign hook detected at $SCRIPT — notarization handled by hook"
+              break
+            fi
+          done
+
+          # Also check the config for afterSign reference
+          AFTER_SIGN_REF=$(node -e "
+            try {
+              const pkg = require('./source-app/package.json');
+              if (pkg.build && pkg.build.afterSign) { console.log('true'); process.exit(0); }
+            } catch(e) {}
+            try {
+              const cfg = require('./source-app/electron-builder.json');
+              if (cfg.afterSign) { console.log('true'); process.exit(0); }
+            } catch(e) {}
+            console.log('false');
+          " 2>/dev/null || echo "false")
+
+          if [ "$AFTER_SIGN_REF" = "true" ]; then
+            HAS_AFTER_SIGN="true"
+            echo "afterSign reference found in config — notarization handled by hook"
+          fi
+
+          if [ "$HAS_AFTER_SIGN" = "true" ]; then
+            # afterSign hook handles notarization — don't also enable mac.notarize
+            # to avoid double-notarization
+            printf '%s\n' \
+              '{' \
+              '  "mac": {' \
+              '    "notarize": false' \
+              '  }' \
+              '}' \
+              > source-app/electron-builder.override.json
+            echo "Override: mac.notarize = false (afterSign hook handles notarization)"
+          else
+            # No afterSign hook — use electron-builder native notarization
+            printf '%s\n' \
+              '{' \
+              '  "mac": {' \
+              '    "notarize": true' \
+              '  }' \
+              '}' \
+              > source-app/electron-builder.override.json
+            echo "Override: mac.notarize = true (native electron-builder notarization)"
+          fi
 
           echo "Override config written:"
           cat source-app/electron-builder.override.json
 
       # -----------------------------------------------------------------------
-      # 9. Build the macOS app, sign it, and notarize
+      # 10. Build the macOS app, sign it, and notarize
       #
       #    electron-builder uses CSC_LINK / CSC_KEY_PASSWORD to sign the .app.
       #    The --config flag merges our override (with mac.notarize) on top of
@@ -350,7 +542,7 @@ jobs:
           npx electron-builder --mac --publish never --config electron-builder.override.json
 
       # -----------------------------------------------------------------------
-      # 10. Staple the notarization ticket to the DMG
+      # 11. Staple the notarization ticket to the DMG
       #
       #    After notarization the ticket must be stapled so the app can be
       #    verified offline (without contacting Apple's servers).
@@ -374,7 +566,7 @@ jobs:
           echo "Notarization stapled and verified."
 
       # -----------------------------------------------------------------------
-      # 11. Find the latest GitHub Release and upload all build artifacts
+      # 12. Find the latest GitHub Release and upload all build artifacts
       #
       #    We use the GitHub REST API to:
       #      a) Fetch the latest release and its upload URL
