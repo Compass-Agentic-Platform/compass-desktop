@@ -506,6 +506,32 @@ jobs:
             echo "::warning::No .app bundle found in source-app/dist — will notarize DMG only"
           fi
 
+          # ---- Code-sign the DMG ----
+          # electron-builder does NOT code-sign DMG files by default.
+          # It only signs the .app bundle inside. Without a code signature
+          # on the DMG itself, Gatekeeper rejects it with "no usable signature"
+          # even after successful notarization and stapling.
+          echo ""
+          echo "=== Code-signing the DMG ==="
+          SIGN_IDENTITY="$(security find-identity -v -p codesigning build.keychain \
+            | grep 'Developer ID Application' \
+            | head -1 \
+            | sed 's/.*"\(.*\)"/\1/')"
+
+          if [ -z "$SIGN_IDENTITY" ]; then
+            echo "::error::No 'Developer ID Application' identity found in build.keychain."
+            exit 1
+          fi
+          echo "Signing identity: $SIGN_IDENTITY"
+
+          codesign --force --sign "$SIGN_IDENTITY" --timestamp "$DMG_FILE"
+          echo "DMG signed successfully."
+
+          # Verify the signature was applied
+          echo "Verifying DMG signature..."
+          codesign --verify --verbose "$DMG_FILE"
+          echo "DMG signature verified."
+
           # ---- Helper function: notarize a file ----
           notarize_file() {
             local FILE="$1"
@@ -565,13 +591,45 @@ jobs:
           notarize_file "$DMG_FILE" "DMG"
           staple_file "$DMG_FILE" "DMG"
 
-          # ---- Verify Gatekeeper acceptance ----
+          # ---- Verify notarization and signatures ----
           echo ""
-          echo "=== Verifying Gatekeeper acceptance ==="
-          spctl --assess --type open --context context:primary-signature -v "$DMG_FILE"
+          echo "=== Verifying notarization and signatures ==="
+
+          # 1. Verify the notarization ticket is stapled to the DMG
+          echo "--- Validating stapled ticket on DMG ---"
+          xcrun stapler validate "$DMG_FILE"
+          echo "DMG staple validation passed."
+
+          # 2. Verify the code signature on the DMG
+          echo ""
+          echo "--- Verifying DMG code signature ---"
+          codesign --verify --verbose "$DMG_FILE"
+          echo "DMG code signature valid."
+
+          # 3. Verify Gatekeeper acceptance of the DMG
+          #    NOTE: We use --type install for disk images, not --type open.
+          #    --type open is for documents; --type execute is for apps;
+          #    --type install is for packages and disk images.
+          echo ""
+          echo "--- Gatekeeper assessment ---"
+          spctl --assess --type install -v "$DMG_FILE"
+          echo "DMG passed Gatekeeper assessment."
+
+          # 4. Verify the .app bundle if present
+          if [ -n "$APP_FILE" ]; then
+            echo ""
+            echo "--- Validating stapled ticket on .app ---"
+            xcrun stapler validate "$APP_FILE"
+            echo ".app staple validation passed."
+
+            echo ""
+            echo "--- Gatekeeper assessment of .app ---"
+            spctl --assess --type execute -v "$APP_FILE"
+            echo ".app passed Gatekeeper assessment."
+          fi
 
           echo ""
-          echo "All notarization and stapling complete."
+          echo "All notarization, stapling, and verification complete."
 
       # -----------------------------------------------------------------------
       # 12. Find the latest GitHub Release and upload all build artifacts
