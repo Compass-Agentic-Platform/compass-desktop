@@ -1,22 +1,16 @@
 {
-  "version": "1.0.2",
-  "releaseDate": "2026-03-31",
-  "releaseNotes": "_Date: 2026-03-31_\r\n\r\n---\r\n\r\n### ✨ What's New in v1.0.2\r\n\r\n#### 💬 Refreshed Chat Design\r\nThe chat experience has been completely redesigned with a **modern bubble layout**, giving conversations a cleaner, more natural feel. Messages are easier to read at a glance, with better spacing and visual polish throughout.\r\n\r\n#### ⚡ Slash Command Autocomplete\r\nType `/` in the chat input and get instant autocomplete suggestions for all available commands — no more guessing what's available.\r\n\r\n#### 🔐 Microsoft Sign-In\r\nYou can now **sign in with your Microsoft account** directly inside Compass Partner using a secure OAuth + PKCE flow — no copy-pasting tokens required.\r\n\r\n#### 🛒 Smarter Marketplace\r\n- Installed skills are now shown in **read-only view** so you always know what's active.\r\n- Skills that bundle multiple files now download everything in one go.\r\n- Marketplace skill pages include **markdown preview** and better overall UI.\r\n- CLI tools are detected and managed automatically from the Marketplace.\r\n\r\n#### 🔋 Performance Settings\r\nA new **Performance** section in Settings lets you control power-saving behaviour and fine-tune background activity to keep your machine running smoothly.\r\n\r\n#### 🌐 Improved Portal Connectivity\r\nRemote execution protocol updated to **v1.1** with more reliable session handling and better support for running commands from the portal.\r\n\r\n---\r\n\r\n### 🛠 Improvements\r\n\r\n- **Friendlier error messages** — when Compass is overloaded or rate-limited, you'll now see a clear, helpful message instead of a raw error.\r\n- **Chat menu decluttered** — the top bar has been replaced with a floating **⋯ menu** so your conversation takes centre stage.\r\n- **Faster onboarding** — removed artificial delays from the CLI setup flow so you get up and running quicker.\r\n- **Chat scroll reliability** — instant scroll behaviour and smarter initial positioning when opening long conversations.\r\n- **Larger chat input area** — more breathing room when composing longer messages.\r\n\r\n---\r\n\r\n### 🐛 Bug Fixes\r\n\r\n- Fixed a race condition that could cause session replay notifications to be routed incorrectly.\r\n- Fixed connection drop issues — reconnection after idle periods is now significantly more reliable, with improved heartbeat handling.\r\n\r\n---\r\n\r\n### ⚙️ Under the Hood\r\n\r\n- WebSocket protocol updated to **v2.0** with improved reliability and session management.\r\n- Internal session replay and ACP routing hardened against edge-case failures.",
-  "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0.2",
+  "version": "1.0.3",
+  "releaseDate": "2026-04-02",
+  "releaseNotes": "_Date: 2026-04-02_\r\n\r\n---\r\n\r\n### ✨ What's New in v1.0.3\r\n\r\n#### 🔗 Custom Marketplace Sources\r\nYou can now **add your own GitHub or Azure DevOps repositories** as Marketplace sources — perfect for private skill libraries or team-shared plugins. Personal Access Tokens are stored securely in your OS keychain, and custom sources appear alongside built-in ones in a clean, dedicated section in Marketplace Settings.\r\n\r\n#### 🗂 Smarter Sidebar Navigation\r\nWorkspace sections in the sidebar now behave like proper accordions — **only one section expands at a time**, keeping the view tidy and focused as you switch between workspaces.\r\n\r\n---\r\n\r\n### 🛠 Improvements\r\n\r\n- **Cleaner Scheduler UI** — the manual refresh button and scheduler toggle have been removed from the interface for a less cluttered experience; scheduling continues to work automatically in the background.\r\n- **Always accurate version number** — the app version shown in settings is now read directly from the package, so it's always in sync with what you actually installed.\r\n\r\n---\r\n\r\n### 🐛 Bug Fixes\r\n\r\n- Fixed an issue where the app could lose track of its **device identity** across sessions, causing unexpected disconnections or re-authentication prompts.\r\n\r\n---\r\n\r\n_Co-authored by [Nova](https://www.compassap.ai/portfolio/nova.html)_",
+  "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0.3",
   "mandatory": false,
   "prerelease": false,
   "platforms": {
-    "darwin-arm64": {
-      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.2/compass-desktop-1.0.2-arm64.dmg",
-      "sha256": "bcff6daf8c70d51535c14e26491417770a63e6368cf44264c2ba393af5a5942f",
-      "size": 116392781,
-      "filename": "compass-desktop-1.0.2-arm64.dmg"
-    },
     "win32-x64": {
-      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.2/Compass-Desktop-1.0.2-setup.exe",
-      "sha256": "2eb526dd86f82c88436c4ee1811061edb682be6e0492e272d332aec5544b4879",
-      "size": 85538440,
-      "filename": "Compass-Desktop-1.0.2-setup.exe"
+      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.3/Compass-Desktop-1.0.3-setup.exe",
+      "sha256": "172d101f093eb59aa60357e97a05a9b77bf1afe193c766f15e9844b9cc521a62",
+      "size": 85563064,
+      "filename": "Compass-Desktop-1.0.3-setup.exe"
     }
   }
 }
