@@ -1,22 +1,16 @@
 {
-  "version": "1.0.3",
-  "releaseDate": "2026-04-02",
-  "releaseNotes": "_Date: 2026-04-02_\r\n\r\n---\r\n\r\n### ✨ What's New in v1.0.3\r\n\r\n#### 🔗 Custom Marketplace Sources\r\nYou can now **add your own GitHub or Azure DevOps repositories** as Marketplace sources — perfect for private skill libraries or team-shared plugins. Personal Access Tokens are stored securely in your OS keychain, and custom sources appear alongside built-in ones in a clean, dedicated section in Marketplace Settings.\r\n\r\n#### 🗂 Smarter Sidebar Navigation\r\nWorkspace sections in the sidebar now behave like proper accordions — **only one section expands at a time**, keeping the view tidy and focused as you switch between workspaces.\r\n\r\n---\r\n\r\n### 🛠 Improvements\r\n\r\n- **Cleaner Scheduler UI** — the manual refresh button and scheduler toggle have been removed from the interface for a less cluttered experience; scheduling continues to work automatically in the background.\r\n- **Always accurate version number** — the app version shown in settings is now read directly from the package, so it's always in sync with what you actually installed.\r\n\r\n---\r\n\r\n### 🐛 Bug Fixes\r\n\r\n- Fixed an issue where the app could lose track of its **device identity** across sessions, causing unexpected disconnections or re-authentication prompts.\r\n\r\n---\r\n\r\n_Co-authored by [Nova](https://www.compassap.ai/portfolio/nova.html)_",
-  "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0.3",
+  "version": "1.0.4",
+  "releaseDate": "2026-04-08",
+  "releaseNotes": "_Date: 2026-04-08_\r\n\r\n---\r\n\r\n### ✨ What's New\r\n\r\n#### 🤝 Agent-to-Agent (A2A) Protocol\r\nCompass Partner now supports the **Agent-to-Agent integration protocol**, allowing agents to communicate and delegate work to each other — unlocking powerful multi-agent workflows directly from the desktop.\r\n\r\n#### 🔗 LinkedIn MCP Tool\r\nA **LinkedIn tool** is now available in the MCP gallery and can be installed directly from the Marketplace.\r\n\r\n#### 🏢 SharePoint Site Search\r\nMicrosoft 365 integration is now extended with **SharePoint site search**, making it easier to find content across your organisation's sites.\r\n\r\n#### 🎭 Personality Mode\r\nCustomise assistant behaviour with a new **Personality Mode** setting, plus new cloud CLI skills to extend what your agent can do.\r\n\r\n#### 🛒 Custom Marketplace Sources\r\nYou can now **manage and add custom source registries** to the Marketplace, giving teams full control over their skill libraries.\r\n\r\n---\r\n\r\n### 🛠 Improvements\r\n\r\n- **Tools shortcut & copy tool calls** — the chat interface gains a Tools shortcut and copy-to-clipboard for tool call results.\r\n- **Workspace accordion** — sidebar workspace sections now collapse others when one is expanded.\r\n- **Settings cleanup** — built-in sources removed from the marketplace tab; portal connections toggle consolidated into its own section.\r\n- **Friendly ACP errors** — overloaded and rate-limited errors now show clear, human-readable messages.\r\n- **Chat scroll** — instant scroll and deferred initial scroll for improved virtualiser reliability.\r\n\r\n---\r\n\r\n### 🐛 Bug Fixes\r\n\r\n- Fixed WebSocket auth — device ID is now persisted correctly and auth response field names corrected.\r\n- Fixed reconnection reliability and idle heartbeat handling.\r\n- Fixed onboarding delays — artificial waits removed from the CLI setup flow.\r\n\r\n---\r\n\r\n_Co-authored by [Nova](https://www.compassap.ai/portfolio/nova.html)_\r\n\r\n",
+  "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0.4",
   "mandatory": false,
   "prerelease": false,
   "platforms": {
-    "darwin-arm64": {
-      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.3/compass-desktop-1.0.3-arm64.dmg",
-      "sha256": "c4010c360470d75e16b52e3cafacd51cc77936331faeb183813f11416bf800e9",
-      "size": 116445953,
-      "filename": "compass-desktop-1.0.3-arm64.dmg"
-    },
     "win32-x64": {
-      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.3/Compass-Desktop-1.0.3-setup.exe",
-      "sha256": "172d101f093eb59aa60357e97a05a9b77bf1afe193c766f15e9844b9cc521a62",
-      "size": 85563064,
-      "filename": "Compass-Desktop-1.0.3-setup.exe"
+      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.4/Compass-Desktop-1.0.4-setup.exe",
+      "sha256": "3d7018e65b6ec91063b3f1192b013564c888c201b9467e705dec82bcc29faf03",
+      "size": 85573520,
+      "filename": "Compass-Desktop-1.0.4-setup.exe"
     }
   }
 }
