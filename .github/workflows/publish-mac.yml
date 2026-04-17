@@ -434,26 +434,22 @@ jobs:
       # -----------------------------------------------------------------------
       # 11. Notarize the .app and DMG, then staple tickets
       #
-      # !!! DISABLED via `if: false` !!!
-      # Apple Developer Program agreement expired / unsigned (notarytool returns
-      # HTTP 403: "A required agreement is missing or has expired").
-      # Until the Account Holder signs the pending agreement(s) at
-      # https://developer.apple.com/account, this step is skipped.
+      #    We handle ALL notarization here using xcrun notarytool directly.
+      #    This is more reliable than electron-builder's built-in notarization
+      #    or afterSign hooks because:
+      #      - We control the exact credentials passed
+      #      - We get clear error messages on failure
+      #      - We can notarize both .app and DMG in sequence
+      #      - We can add retry logic for CDN propagation delays
       #
-      # Consequences of skipping:
-      #   - DMG is still CODE-SIGNED (Step 10 + codesign in Step 11 body is
-      #     skipped — so DMG itself is unsigned; the .app inside is signed).
-      #   - DMG is NOT notarized and NOT stapled.
-      #   - Gatekeeper will warn on first launch ("cannot verify developer").
-      #     Users must right-click → Open, or run:
-      #       xattr -cr "/Applications/Compass Desktop.app"
-      #   - electron-updater delta updates still work (they rely on signing,
-      #     not notarization).
-      #
-      # To re-enable: remove the `if: false` line below.
+      #    Sequence:
+      #      1. Store credentials in a notarytool profile (avoids passing
+      #         secrets as CLI args which can leak in logs)
+      #      2. Notarize the .app bundle inside the DMG
+      #      3. Notarize the DMG itself
+      #      4. Staple tickets to both with retry logic
       # -----------------------------------------------------------------------
       - name: Notarize & staple .app and DMG
-        if: false
         shell: bash
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
