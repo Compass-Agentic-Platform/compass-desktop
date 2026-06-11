@@ -8,8 +8,8 @@
   "platforms": {
     "win32-x64": {
       "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.11/Compass-Desktop-1.0.11-setup.exe",
-      "sha256": "0eb11741c542f99f8330a51f037565c9e14e8cf5d46f64355fa2c9f94e4eab24",
-      "size": 115843400,
+      "sha256": "aa515672a90b89de6e65a74e9a4a28d10aa7d9065da7c02ee37dac4963179911",
+      "size": 117421392,
       "filename": "Compass-Desktop-1.0.11-setup.exe"
     }
   }
