@@ -291,7 +291,6 @@ jobs:
       #    We disable the hook by:
       #      a) Removing afterSign from package.json build config
       #      b) Removing afterSign from standalone electron-builder configs
-      #      c) The override config in Step 9 also sets afterSign to null
       # -----------------------------------------------------------------------
       - name: Disable afterSign notarize hook
         shell: bash
@@ -364,9 +363,13 @@ jobs:
           echo "All afterSign hooks disabled. Notarization will be handled in Step 11."
 
       # -----------------------------------------------------------------------
-      # 9. Write electron-builder override — disable built-in notarization
+      # 9. Patch electron-builder.json — disable built-in notarization
       #
-      #    We disable BOTH afterSign and mac.notarize in the override config.
+      #    We disable BOTH afterSign and mac.notarize by merging the overrides
+      #    directly into electron-builder.json. This preserves ALL existing
+      #    config (extraResources, files, asarUnpack, mac settings, etc.)
+      #    while only changing the notarization-related fields.
+      #
       #    All notarization is handled explicitly in Step 11 using
       #    xcrun notarytool, which gives us:
       #      - Full control over credentials
@@ -374,10 +377,12 @@ jobs:
       #      - Ability to notarize both .app and DMG
       #      - Retry logic for CDN propagation delays
       #
-      #    The --config flag in step 10 merges this file on top of whatever
-      #    config already exists in the source app.
+      #    IMPORTANT: We do NOT use a separate override config file with
+      #    --config, because electron-builder treats --config as the PRIMARY
+      #    config and ignores electron-builder.json entirely. That would
+      #    drop extraResources, files, asarUnpack, and other critical settings.
       # -----------------------------------------------------------------------
-      - name: Write electron-builder override (no built-in notarization)
+      - name: Patch electron-builder.json (disable built-in notarization)
         shell: bash
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -389,25 +394,35 @@ jobs:
           fi
           echo "APPLE_TEAM_ID is set (length: ${#APPLE_TEAM_ID})"
 
-          # Disable both afterSign and mac.notarize — Step 11 handles everything
-          printf '%s\n' \
-            '{' \
-            '  "afterSign": null,' \
-            '  "mac": {' \
-            '    "notarize": false' \
-            '  }' \
-            '}' \
-            > source-app/electron-builder.override.json
+          # Merge overrides directly into the existing electron-builder.json
+          # This preserves extraResources, files, asarUnpack, and all other config
+          node -e "
+            const fs = require('fs');
+            const cfgPath = 'source-app/electron-builder.json';
+            const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
 
-          echo "Override config written (notarization disabled — handled in Step 11):"
-          cat source-app/electron-builder.override.json
+            // Disable afterSign hook (notarization handled in Step 11)
+            cfg.afterSign = null;
+
+            // Disable built-in mac notarization
+            cfg.mac = cfg.mac || {};
+            cfg.mac.notarize = false;
+
+            fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
+            console.log('Patched electron-builder.json (afterSign=null, mac.notarize=false)');
+          "
+
+          echo ""
+          echo "Final electron-builder.json:"
+          cat source-app/electron-builder.json
 
       # -----------------------------------------------------------------------
-      # 10. Build the macOS app, sign it, and notarize
+      # 10. Build the macOS app and sign it
       #
       #    electron-builder uses CSC_LINK / CSC_KEY_PASSWORD to sign the .app.
-      #    The --config flag merges our override (with mac.notarize) on top of
-      #    whatever config already exists in the source app's package.json.
+      #    It reads the project's electron-builder.json directly (no --config
+      #    override), so ALL settings including extraResources, files, and
+      #    asarUnpack are preserved.
       #
       #    Expected output: source-app/dist/*.dmg and source-app/dist/*.zip
       # -----------------------------------------------------------------------
@@ -429,7 +444,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm run build
-          npx electron-builder --mac --publish never --config electron-builder.override.json
+          npx electron-builder --mac --publish never
 
       # -----------------------------------------------------------------------
       # 11. Notarize the .app and DMG, then staple tickets
