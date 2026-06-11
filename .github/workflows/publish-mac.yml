@@ -534,7 +534,11 @@ jobs:
           echo "Credentials stored in profile 'AC_PASSWORD'"
 
           # ---- Find all DMGs ----
-          mapfile -t DMG_FILES < <(find source-app/dist -name '*.dmg')
+          # NOTE: macOS ships bash 3.2 which lacks mapfile. Use while-read instead.
+          DMG_FILES=()
+          while IFS= read -r f; do
+            DMG_FILES+=("$f")
+          done < <(find source-app/dist -name '*.dmg')
           if [ ${#DMG_FILES[@]} -eq 0 ]; then
             echo "::error::No .dmg files found in source-app/dist. Build may have failed."
             exit 1
@@ -544,7 +548,10 @@ jobs:
           printf '  %s\n' "${DMG_FILES[@]}"
 
           # ---- Find all .app bundles ----
-          mapfile -t APP_FILES < <(find source-app/dist -name '*.app' -type d)
+          APP_FILES=()
+          while IFS= read -r f; do
+            [ -n "$f" ] && APP_FILES+=("$f")
+          done < <(find source-app/dist -name '*.app' -type d)
           if [ ${#APP_FILES[@]} -gt 0 ]; then
             echo "Found ${#APP_FILES[@]} .app bundle(s):"
             printf '  %s\n' "${APP_FILES[@]}"
