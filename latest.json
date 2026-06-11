@@ -1,8 +1,8 @@
 {
-  "version": "1.0.11",
+  "version": "1.0",
   "releaseDate": "2026-06-11",
   "releaseNotes": "_Date: 2026-06-11_\r\n\r\n---\r\n\r\n### ✨ What's New\r\n\r\n#### 🌐 Full Internationalization\r\nCompass Partner is now fully internationalized:\r\n\r\n- **Complete i18n coverage** across Settings, Activity feed, Agents, Marketplace, Knowledge dialogs, Voice mode badges, and Workflow designer/fullscreen strings.\r\n- Localized in 4+ languages with clean fallbacks and no remaining English hard-codes in core flows.\r\n\r\n---\r\n\r\n### 🛠️ Improvements\r\n\r\n- **Workflow designer** — prompt editor expanded, step pane simplified, inline markdown editing for steps.\r\n- **Copy button** relocated to chat response footer next to the timestamp for better discoverability.\r\n- **Marketplace subtitle** and related strings fully localized.\r\n\r\n---\r\n\r\n### 🐛 Bug Fixes\r\n\r\n- **Attach button** is now correctly disabled during active agent loops.\r\n- **Chat IPC/DB column mapping** fixed (camelCase ↔ snake_case) preventing data loss on insert.\r\n- **Renderer recovery after system wake** improved.\r\n- **AI improvement metaprompt** now aligns with OpenAPI spec for request/response shapes.\r\n- Minor i18n string fixes (e.g. redundant \"(Portugal)\" label).\r\n\r\n---\r\n\r\n### ⚙️ Under the Hood\r\n\r\n- **Electron-builder signing** and Linux desktop entry config restructured for more reliable cross-platform builds.\r\n- **10 security vulnerabilities** fixed via dependency upgrades.\r\n\r\n_Co-authored by [Nova](https://www.compassap.ai/portfolio/nova.html)_\r\n",
-  "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0.11",
+  "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0",
   "mandatory": false,
   "prerelease": false,
   "platforms": {
