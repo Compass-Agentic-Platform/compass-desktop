@@ -396,25 +396,55 @@ jobs:
 
           # Merge overrides directly into the existing electron-builder.json
           # This preserves extraResources, files, asarUnpack, and all other config
-          node -e "
-            const fs = require('fs');
-            const cfgPath = 'source-app/electron-builder.json';
-            const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+          # Detect native architecture of the runner
+          NATIVE_ARCH="$(uname -m)"
+          if [ "$NATIVE_ARCH" = "arm64" ]; then
+            EB_ARCH="arm64"
+          else
+            EB_ARCH="x64"
+          fi
+          export EB_ARCH
+          echo "Runner architecture: $NATIVE_ARCH → electron-builder arch: $EB_ARCH"
 
-            // Disable afterSign hook (notarization handled in Step 11)
-            cfg.afterSign = null;
+          # Write the patch script to a temp file to avoid shell escaping issues
+          cat > /tmp/patch-eb.js << 'PATCH_SCRIPT'
+          const fs = require('fs');
+          const cfgPath = 'source-app/electron-builder.json';
+          const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
 
-            // Disable built-in mac notarization
-            cfg.mac = cfg.mac || {};
-            cfg.mac.notarize = false;
+          // Disable afterSign hook (notarization handled in Step 11)
+          cfg.afterSign = null;
 
-            fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
-            console.log('Patched electron-builder.json (afterSign=null, mac.notarize=false)');
-          "
+          // Disable built-in mac notarization
+          cfg.mac = cfg.mac || {};
+          cfg.mac.notarize = false;
+
+          // Pin to the runner's native architecture only.
+          // Native modules (better-sqlite3, keytar) are compiled by npm ci
+          // for the host arch only — cross-arch builds produce broken binaries.
+          const arch = process.env.EB_ARCH || 'arm64';
+          cfg.mac.target = [
+            { target: 'dmg', arch: [arch] },
+            { target: 'zip', arch: [arch] }
+          ];
+
+          fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
+          console.log('Patched electron-builder.json (afterSign=null, mac.notarize=false, arch=' + arch + ')');
+          PATCH_SCRIPT
+
+          node /tmp/patch-eb.js
 
           echo ""
           echo "Final electron-builder.json:"
           cat source-app/electron-builder.json
+
+          # Verify the patch actually took effect
+          ARCH_COUNT=$(node -e "const c=JSON.parse(require('fs').readFileSync('source-app/electron-builder.json','utf8')); const arches=new Set(); c.mac.target.forEach(t=>t.arch.forEach(a=>arches.add(a))); console.log(arches.size)")
+          if [ "$ARCH_COUNT" != "1" ]; then
+            echo "::error::electron-builder.json patch failed — expected 1 architecture, found $ARCH_COUNT"
+            exit 1
+          fi
+          echo "Patch verified: single architecture build confirmed."
 
       # -----------------------------------------------------------------------
       # 10. Build the macOS app and sign it
@@ -503,31 +533,26 @@ jobs:
             --team-id "$APPLE_TEAM_ID"
           echo "Credentials stored in profile 'AC_PASSWORD'"
 
-          # ---- Find the DMG ----
-          DMG_FILE="$(find source-app/dist -name '*.dmg' | head -1)"
-          if [ -z "$DMG_FILE" ]; then
-            echo "::error::No .dmg file found in source-app/dist. Build may have failed."
+          # ---- Find all DMGs ----
+          mapfile -t DMG_FILES < <(find source-app/dist -name '*.dmg')
+          if [ ${#DMG_FILES[@]} -eq 0 ]; then
+            echo "::error::No .dmg files found in source-app/dist. Build may have failed."
             exit 1
           fi
           echo ""
-          echo "Found DMG: $DMG_FILE"
+          echo "Found ${#DMG_FILES[@]} DMG(s):"
+          printf '  %s\n' "${DMG_FILES[@]}"
 
-          # ---- Find the .app bundle ----
-          # The .app is inside the mac/ or mac-arm64/ output directory
-          APP_FILE="$(find source-app/dist -name '*.app' -type d | head -1)"
-          if [ -n "$APP_FILE" ]; then
-            echo "Found .app: $APP_FILE"
+          # ---- Find all .app bundles ----
+          mapfile -t APP_FILES < <(find source-app/dist -name '*.app' -type d)
+          if [ ${#APP_FILES[@]} -gt 0 ]; then
+            echo "Found ${#APP_FILES[@]} .app bundle(s):"
+            printf '  %s\n' "${APP_FILES[@]}"
           else
-            echo "::warning::No .app bundle found in source-app/dist — will notarize DMG only"
+            echo "::warning::No .app bundles found in source-app/dist — will notarize DMGs only"
           fi
 
-          # ---- Code-sign the DMG ----
-          # electron-builder does NOT code-sign DMG files by default.
-          # It only signs the .app bundle inside. Without a code signature
-          # on the DMG itself, Gatekeeper rejects it with "no usable signature"
-          # even after successful notarization and stapling.
-          echo ""
-          echo "=== Code-signing the DMG ==="
+          # ---- Resolve signing identity ----
           SIGN_IDENTITY="$(security find-identity -v -p codesigning build.keychain \
             | grep 'Developer ID Application' \
             | head -1 \
@@ -539,13 +564,18 @@ jobs:
           fi
           echo "Signing identity: $SIGN_IDENTITY"
 
-          codesign --force --sign "$SIGN_IDENTITY" --timestamp "$DMG_FILE"
-          echo "DMG signed successfully."
-
-          # Verify the signature was applied
-          echo "Verifying DMG signature..."
-          codesign --verify --verbose "$DMG_FILE"
-          echo "DMG signature verified."
+          # ---- Code-sign ALL DMGs ----
+          # electron-builder does NOT code-sign DMG files by default.
+          # It only signs the .app bundle inside. Without a code signature
+          # on the DMG itself, Gatekeeper rejects it with "no usable signature"
+          # even after successful notarization and stapling.
+          for DMG_FILE in "${DMG_FILES[@]}"; do
+            echo ""
+            echo "=== Code-signing DMG: $(basename "$DMG_FILE") ==="
+            codesign --force --sign "$SIGN_IDENTITY" --timestamp "$DMG_FILE"
+            codesign --verify --verbose "$DMG_FILE"
+            echo "DMG signed and verified."
+          done
 
           # ---- Helper function: notarize a file ----
           notarize_file() {
@@ -587,61 +617,49 @@ jobs:
             echo "$LABEL stapled successfully."
           }
 
-          # ---- Notarize the .app bundle (if found) ----
-          if [ -n "$APP_FILE" ]; then
+          # ---- Notarize all .app bundles (if found) ----
+          for APP_FILE in "${APP_FILES[@]}"; do
             # notarytool requires a zip for .app bundles
             echo ""
-            echo "=== Zipping .app for notarization ==="
+            echo "=== Zipping .app for notarization: $(basename "$APP_FILE") ==="
             APP_ZIP="$(mktemp /tmp/app-notarize.XXXXXX.zip)"
             ditto -c -k --keepParent "$APP_FILE" "$APP_ZIP"
             echo "Zipped to: $APP_ZIP ($(du -h "$APP_ZIP" | cut -f1))"
 
-            notarize_file "$APP_ZIP" ".app bundle"
-            staple_file "$APP_FILE" ".app bundle"
+            notarize_file "$APP_ZIP" ".app bundle ($(basename "$APP_FILE"))"
+            staple_file "$APP_FILE" ".app bundle ($(basename "$APP_FILE"))"
 
             rm -f "$APP_ZIP"
-          fi
+          done
 
-          # ---- Notarize the DMG ----
-          notarize_file "$DMG_FILE" "DMG"
-          staple_file "$DMG_FILE" "DMG"
+          # ---- Notarize all DMGs ----
+          for DMG_FILE in "${DMG_FILES[@]}"; do
+            notarize_file "$DMG_FILE" "DMG ($(basename "$DMG_FILE"))"
+            staple_file "$DMG_FILE" "DMG ($(basename "$DMG_FILE"))"
+          done
 
           # ---- Verify notarization and signatures ----
           echo ""
           echo "=== Verifying notarization and signatures ==="
 
-          # 1. Verify the notarization ticket is stapled to the DMG
-          echo "--- Validating stapled ticket on DMG ---"
-          xcrun stapler validate "$DMG_FILE"
-          echo "DMG staple validation passed."
-
-          # 2. Verify the code signature on the DMG
-          echo ""
-          echo "--- Verifying DMG code signature ---"
-          codesign --verify --verbose "$DMG_FILE"
-          echo "DMG code signature valid."
-
-          # 3. Verify Gatekeeper acceptance of the DMG
-          #    NOTE: We use --type install for disk images, not --type open.
-          #    --type open is for documents; --type execute is for apps;
-          #    --type install is for packages and disk images.
-          echo ""
-          echo "--- Gatekeeper assessment ---"
-          spctl --assess --type install -v "$DMG_FILE"
-          echo "DMG passed Gatekeeper assessment."
-
-          # 4. Verify the .app bundle if present
-          if [ -n "$APP_FILE" ]; then
+          # Verify ALL DMGs
+          for DMG_FILE in "${DMG_FILES[@]}"; do
+            echo "--- Validating DMG: $(basename "$DMG_FILE") ---"
+            xcrun stapler validate "$DMG_FILE"
+            codesign --verify --verbose "$DMG_FILE"
+            spctl --assess --type install -v "$DMG_FILE"
+            echo "$(basename "$DMG_FILE") passed all checks."
             echo ""
-            echo "--- Validating stapled ticket on .app ---"
+          done
+
+          # Verify ALL .app bundles
+          for APP_FILE in "${APP_FILES[@]}"; do
+            echo "--- Validating .app: $(basename "$APP_FILE") ---"
             xcrun stapler validate "$APP_FILE"
-            echo ".app staple validation passed."
-
-            echo ""
-            echo "--- Gatekeeper assessment of .app ---"
             spctl --assess --type execute -v "$APP_FILE"
-            echo ".app passed Gatekeeper assessment."
-          fi
+            echo "$(basename "$APP_FILE") passed all checks."
+            echo ""
+          done
 
           echo ""
           echo "All notarization, stapling, and verification complete."
