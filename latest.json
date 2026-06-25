@@ -1,22 +1,16 @@
 {
-  "version": "1.0.11",
-  "releaseDate": "2026-06-11",
-  "releaseNotes": "_Date: 2026-06-11_\r\n\r\n---\r\n\r\n### ✨ What's New\r\n\r\n#### 🌐 Full Internationalization\r\nCompass Partner is now fully internationalized:\r\n\r\n- **Complete i18n coverage** across Settings, Activity feed, Agents, Marketplace, Knowledge dialogs, Voice mode badges, and Workflow designer/fullscreen strings.\r\n- Localized in 4+ languages with clean fallbacks and no remaining English hard-codes in core flows.\r\n\r\n---\r\n\r\n### 🛠️ Improvements\r\n\r\n- **Workflow designer** — prompt editor expanded, step pane simplified, inline markdown editing for steps.\r\n- **Copy button** relocated to chat response footer next to the timestamp for better discoverability.\r\n- **Marketplace subtitle** and related strings fully localized.\r\n\r\n---\r\n\r\n### 🐛 Bug Fixes\r\n\r\n- **Attach button** is now correctly disabled during active agent loops.\r\n- **Chat IPC/DB column mapping** fixed (camelCase ↔ snake_case) preventing data loss on insert.\r\n- **Renderer recovery after system wake** improved.\r\n- **AI improvement metaprompt** now aligns with OpenAPI spec for request/response shapes.\r\n- Minor i18n string fixes (e.g. redundant \"(Portugal)\" label).\r\n\r\n---\r\n\r\n### ⚙️ Under the Hood\r\n\r\n- **Electron-builder signing** and Linux desktop entry config restructured for more reliable cross-platform builds.\r\n- **10 security vulnerabilities** fixed via dependency upgrades.\r\n\r\n_Co-authored by [Nova](https://www.compassap.ai/portfolio/nova.html)_\r\n",
-  "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0.11",
+  "version": "1.0.12",
+  "releaseDate": "2026-06-25",
+  "releaseNotes": "_Date: 2026-06-25_\r\n\r\n---\r\n\r\n### ✨ What's New\r\n\r\n#### 🧰 Managed MCP Server Gallery\r\nCompass Partner now gives organisations stronger control over managed MCP server rollout:\r\n\r\n- **Org-provided MCP servers** can appear in a managed gallery for easier discovery and setup.\r\n- **Google Analytics** is available as a new MCP gallery entry.\r\n- **Managed MCP configuration examples** were added to support IT/admin deployment workflows.\r\n- **Valid managed MCP entries are preserved** when configuration is sanitized, avoiding accidental removal of usable server definitions.\r\n\r\n#### 🗂 Global Storage for Agent Files\r\nAgent-generated files are now easier to find and reuse:\r\n\r\n- A new **global Storage page** centralizes files created by agents.\r\n- Storage previews were improved for a cleaner file-review experience.\r\n- Storage page copy is now localized.\r\n\r\n#### 💬 Richer Chat Rendering\r\nChat output and prompts now support more faithful formatting:\r\n\r\n- Markdown images can be shown in chat.\r\n- User prompts render markdown instead of plain text only.\r\n- Streaming responses are smoother and line breaks are preserved more reliably.\r\n- An **AI reminder** is now shown in chat to set clearer expectations.\r\n\r\n---\r\n\r\n### 🛠️ Improvements\r\n\r\n- **Desktop performance** — reduced idle work to keep the app lighter when not actively in use.\r\n- **macOS branding** — the Dock icon is now set explicitly, and generated icons were realigned.\r\n- **Compass platform access** — added a direct Compass platform link in the renderer.\r\n- **Enterprise deployment guidance** — added an IT deployment guide and hardened uninstall data-preservation defaults.\r\n- **ACP recaps** — surfaced recap metadata and buffered recap output until the app is idle.\r\n- **Workflow authoring guidance** — workflow docs now prefer manifest-based file maps.\r\n- **Code quality** — consolidated JSON parsing and improved tool-call deduplication.\r\n\r\n---\r\n\r\n### 🐛 Bug Fixes\r\n\r\n- **Auto-update policy** now respects managed configuration instead of ignoring IT-controlled update settings.\r\n- **Chat actions and rendering** fixes include disabling **Clear chat** when history is empty, remeasuring virtualized groups, and improving Obsidian/dynamic tool labels.\r\n- **Preview security** now uses safe image data URLs.\r\n- **Workflow tool use** is hardened to prevent invented tools.\r\n- **MCP gallery UI** hides irrelevant local-install notes where they do not apply.\r\n- **Build configuration** now places `externalizeDeps` where electron-vite reads it and splits heavy modules for more reliable packaging.\r\n\r\n---\r\n\r\n### ⚙️ Under the Hood\r\n\r\n- Upgraded to **Vite 8 with the Rolldown bundler**.\r\n- Overrode **esbuild to 0.28.1+** to address the dev-server request-forwarding advisory GHSA-67mh-4wv8-2f99.\r\n- Removed the deprecated WhatsApp feature code.\r\n- Bumped application version metadata to **1.0.12**.\r\n\r\n_Co-authored by [Nova](https://www.compassap.ai/portfolio/nova.html)_",
+  "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0.12",
   "mandatory": false,
   "prerelease": false,
   "platforms": {
-    "darwin-arm64": {
-      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.11/Compass-Desktop-1.0.11-mac-arm64.zip",
-      "sha256": "f68385eed7df884173a4d6b62dabad6f3756a4b5b05d12206c2b5c7dd03a73d7",
-      "size": 133348239,
-      "filename": "Compass-Desktop-1.0.11-mac-arm64.zip"
-    },
     "win32-x64": {
-      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.11/Compass-Desktop-1.0.11-setup.exe",
-      "sha256": "aa515672a90b89de6e65a74e9a4a28d10aa7d9065da7c02ee37dac4963179911",
-      "size": 117421392,
-      "filename": "Compass-Desktop-1.0.11-setup.exe"
+      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.12/Compass-Desktop-1.0.12-setup.exe",
+      "sha256": "d7509a6d38448477d7c812f8f2b8fcd072b209ae99668909eedb56bf0262e71c",
+      "size": 117070968,
+      "filename": "Compass-Desktop-1.0.12-setup.exe"
     }
   }
 }
