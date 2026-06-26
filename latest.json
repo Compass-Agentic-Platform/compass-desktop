@@ -6,6 +6,12 @@
   "mandatory": false,
   "prerelease": false,
   "platforms": {
+    "darwin-arm64": {
+      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.12/Compass-Desktop-1.0.12-mac-arm64.zip",
+      "sha256": "3dc391ed43ac5dd6f0e65645f98fc915b9292d76499ffbdb8aba8d2c86dbaeb1",
+      "size": 140655618,
+      "filename": "Compass-Desktop-1.0.12-mac-arm64.zip"
+    },
     "win32-x64": {
       "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.12/Compass-Desktop-1.0.12-setup.exe",
       "sha256": "7318851a3ad98b697e9a2a4f8d5b6b8e03800fda0e63f452e9ca41c3b894b1c1",
