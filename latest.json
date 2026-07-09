@@ -1,22 +1,16 @@
 {
-  "version": "1.0.14",
-  "releaseDate": "2026-07-01",
-  "releaseNotes": "_Date: 2026-07-01_\r\n\r\n---\r\n\r\n### ✨ What's New\r\n\r\n#### 🌐 Account Language Sync\r\nCompass Partner now keeps the app language aligned with Compass account preferences:\r\n\r\n- The Settings language selector loads the preferred language from the user's Compass account.\r\n- Language changes made in the app are persisted back to Compass.\r\n- The selector refreshes when the app regains focus or reconnects, keeping local state in sync.\r\n\r\n#### 🧭 Sidebar Mode Selector\r\nThe sidebar now includes a mode selector, making it easier to switch between app modes from the main navigation area.\r\n\r\n---\r\n\r\n### 🛠️ Improvements\r\n\r\n- **Marketplace navigation** — Marketplace opened from More actions now renders inline with pane-specific chrome.\r\n- **Marketplace modal behavior** — Marketplace opened from the floating menu keeps the modal experience where it belongs.\r\n- **Localization coverage** — new language-sync and sidebar-mode labels were added across supported locales.\r\n\r\n---\r\n\r\n### 🐛 Bug Fixes\r\n\r\n- **Marketplace chrome separation** now prevents inline pane views and modal views from sharing the wrong layout treatment.\r\n\r\n---\r\n\r\n### ⚙️ Under the Hood\r\n\r\n- Added account preferences service, IPC, preload, and renderer store plumbing for display-language synchronization.\r\n- Added verification coverage for account display-language behavior.\r\n- **Application version metadata** was bumped to **1.0.14**.\r\n\r\n_Co-authored by [Nova](https://www.compassap.ai/portfolio/nova.html)_\r\n",
-  "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0.14",
+  "version": "1.0.15",
+  "releaseDate": "2026-07-09",
+  "releaseNotes": "_Date: 2026-07-09_\r\n\r\n---\r\n\r\n### ✨ What's New\r\n\r\n#### 🔎 Persistent Chat Search\r\nCompass Partner now keeps chat search state available as users move around the app:\r\n\r\n- Chat searches can be saved and restored across sessions.\r\n- Search-related chat state now survives reopening workflows and returning to active conversations.\r\n- Message search plumbing is shared across the main process, preload API, renderer stores, and local database.\r\n\r\n#### 🔗 Markdown Link Handling\r\nMarkdown links in chat now open as proper external links from assistant responses, command output, and rendered chat messages.\r\n\r\n---\r\n\r\n### 🛠️ Improvements\r\n\r\n- **Compass resource panel polish** — resource lists, sidebars, editors, and markdown editing were refined for a cleaner authoring experience.\r\n- **Workflow guidance** — workflow instructions now clarify how `mcpServers` should be declared and used.\r\n- **Dark mode readability** — the Settings version label has better contrast in dark mode.\r\n\r\n---\r\n\r\n### 🐛 Bug Fixes\r\n\r\n- **Workflow session restore** now reopens saved sessions more reliably.\r\n- **Streaming chat scroll behavior** now respects the user's scroll position instead of forcing jumps while output streams.\r\n- **Skill previews** no longer expose the removed visual preview path.\r\n\r\n---\r\n\r\n### ⚙️ Under the Hood\r\n\r\n- Added database, IPC, preload, shared-type, and renderer-store support for persisted chat message search.\r\n- Updated verification coverage for workflow chat and skill preview behavior.\r\n- **Application version metadata** was bumped to **1.0.15**.\r\n\r\n_Co-authored by [Nova](https://www.compassap.ai/portfolio/nova.html)_\r\n",
+  "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0.15",
   "mandatory": false,
   "prerelease": false,
   "platforms": {
-    "darwin-arm64": {
-      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.14/Compass-Desktop-1.0.14-mac-arm64.zip",
-      "sha256": "87137cda992b1efe0fc82708b1111396fcca2848b172cc5ecfd3bccbf3384360",
-      "size": 139424240,
-      "filename": "Compass-Desktop-1.0.14-mac-arm64.zip"
-    },
     "win32-x64": {
-      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.14/Compass-Desktop-1.0.14-setup.exe",
-      "sha256": "757b75c79e4a4637a6807000dd02c32e787268f012c4de2fde6b7504d94f6038",
-      "size": 123580072,
-      "filename": "Compass-Desktop-1.0.14-setup.exe"
+      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.15/Compass-Desktop-1.0.15-setup.exe",
+      "sha256": "03c02da624b2a2cc1ff6cfee6231c3e91326966819b6b5f107b0909133c22846",
+      "size": 123579720,
+      "filename": "Compass-Desktop-1.0.15-setup.exe"
     }
   }
 }
