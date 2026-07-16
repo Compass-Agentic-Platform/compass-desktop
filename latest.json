@@ -1,16 +1,22 @@
 {
-  "version": "1.0.16",
+  "version": "1.0.15",
   "releaseDate": "2026-07-16",
-  "releaseNotes": "_Date: 2026-07-16_\r\n\r\n---\r\n\r\n### ✨ What's New\r\n\r\n#### 🧰 Agent Studio Tool Discovery\r\nAgent Studio now makes it easier to configure agents with ACP tools:\r\n\r\n- Available ACP session tools can be discovered directly from the agent editor.\r\n- Tool selection now supports searchable multi-select behavior for faster setup.\r\n- A guided tool-setup wizard helps users configure tool access with clearer context.\r\n\r\n#### 💬 Smarter ACP Chat Sessions\r\nACP chat sessions now preserve more context across conversations and startup paths:\r\n\r\n- ACP events are routed by chat session, keeping streamed output attached to the right conversation.\r\n- Chat history search now includes ACP session history.\r\n- The default ACP model can be managed from Settings.\r\n- Startup coordination reduces duplicate starts and adds latency tracing for prompt handling.\r\n\r\n#### 📅 Scheduled Task Output Routing\r\nScheduled tasks can now route their output into workspace chats, making automated work easier to review in the right project context.\r\n\r\n---\r\n\r\n### 🛠️ Improvements\r\n\r\n- **Workspace previews** — workspace assets now load through a dedicated preview protocol for more reliable file rendering.\r\n- **Prompt latency diagnostics** — ACP prompt tracing and diagnostics were expanded to make slow prompt paths easier to investigate.\r\n- **Tool gallery usability** — tool lists now scroll correctly and remain usable in constrained layouts.\r\n- **Workspace descriptions** — localized workspace copy was clarified across supported languages.\r\n- **Navigation labels** — navigation text was simplified for clearer scanning.\r\n- **Windows release pipeline** — signed Windows builds now have stronger production verification, publishing, signing, and artifact checks.\r\n\r\n---\r\n\r\n### 🐛 Bug Fixes\r\n\r\n- **Agent Studio ACP setup** now bootstraps the required Studio ACP session before loading session tools.\r\n- **ACP search debounce** now remains stable while users type.\r\n- **Scheduler output routing schema** was repaired so scheduled task chat routing persists correctly.\r\n- **Workspace preview assets** now load reliably via the app protocol instead of direct file paths.\r\n\r\n---\r\n\r\n### ⚙️ Under the Hood\r\n\r\n- Added ACP session routing, session search, tool discovery, startup coordination, single-flight, prompt latency, and UTF-8 transport verification coverage.\r\n- Added scheduler chat-routing database schema support and verification coverage.\r\n- Added workspace preview grant service, protocol handling, and preview verification coverage.\r\n- Added production-release and Windows artifact verification scripts.\r\n- **Application version metadata** was bumped to **1.0.16**.\r\n\r\n_Co-authored by [Nova](https://www.compassap.ai/portfolio/nova.html)_",
-  "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0.16",
+  "releaseNotes": "_Date: 2026-07-09_\r\n\r\n---\r\n\r\n### ✨ What's New\r\n\r\n#### 🔎 Persistent Chat Search\r\nCompass Partner now keeps chat search state available as users move around the app:\r\n\r\n- Chat searches can be saved and restored across sessions.\r\n- Search-related chat state now survives reopening workflows and returning to active conversations.\r\n- Message search plumbing is shared across the main process, preload API, renderer stores, and local database.\r\n\r\n#### 🔗 Markdown Link Handling\r\nMarkdown links in chat now open as proper external links from assistant responses, command output, and rendered chat messages.\r\n\r\n---\r\n\r\n### 🛠️ Improvements\r\n\r\n- **Compass resource panel polish** — resource lists, sidebars, editors, and markdown editing were refined for a cleaner authoring experience.\r\n- **Workflow guidance** — workflow instructions now clarify how `mcpServers` should be declared and used.\r\n- **Dark mode readability** — the Settings version label has better contrast in dark mode.\r\n\r\n---\r\n\r\n### 🐛 Bug Fixes\r\n\r\n- **Workflow session restore** now reopens saved sessions more reliably.\r\n- **Streaming chat scroll behavior** now respects the user's scroll position instead of forcing jumps while output streams.\r\n- **Skill previews** no longer expose the removed visual preview path.\r\n\r\n---\r\n\r\n### ⚙️ Under the Hood\r\n\r\n- Added database, IPC, preload, shared-type, and renderer-store support for persisted chat message search.\r\n- Updated verification coverage for workflow chat and skill preview behavior.\r\n- **Application version metadata** was bumped to **1.0.15**.\r\n\r\n_Co-authored by [Nova](https://www.compassap.ai/portfolio/nova.html)_\r\n",
+  "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0.15",
   "mandatory": false,
   "prerelease": false,
   "platforms": {
+    "darwin-arm64": {
+      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.15/Compass-Desktop-1.0.15-mac-arm64.zip",
+      "sha256": "baf1be0210375af3c49124b0fe67dbb4e10f1ed66bbb00d26b1bcac001a5ea87",
+      "size": 139417306,
+      "filename": "Compass-Desktop-1.0.15-mac-arm64.zip"
+    },
     "win32-x64": {
-      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.16/Compass-Desktop-1.0.16-setup.exe",
-      "sha256": "24572ffc2bb9b595ee7c0719ec7d4cf1bfe3691124b4d8352280e88a0e465b3f",
-      "size": 120542224,
-      "filename": "Compass-Desktop-1.0.16-setup.exe"
+      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.15/Compass-Desktop-1.0.15-setup.exe",
+      "sha256": "03c02da624b2a2cc1ff6cfee6231c3e91326966819b6b5f107b0909133c22846",
+      "size": 123579720,
+      "filename": "Compass-Desktop-1.0.15-setup.exe"
     }
   }
 }
