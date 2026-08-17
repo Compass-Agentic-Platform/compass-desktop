@@ -1,11 +1,17 @@
 {
   "version": "1.0.17",
-  "releaseDate": "2026-08-14",
+  "releaseDate": "2026-08-17",
   "releaseNotes": "_Date: 2026-08-14_\r\n\r\n---\r\n\r\n### ✨ What's New\r\n\r\n#### 📊 Flexible Usage Insights\r\nThe Activity view now supports separate **Subscription** and **API key** usage modes:\r\n\r\n- Subscription activity reports credit consumption and request totals.\r\n- API key activity reports token usage and cost.\r\n- Remote usage retrieval now supports larger histories and filters subscription records by billing type for more accurate totals.\r\n\r\n#### 🧩 Durable Workflow Workspaces\r\nWorkflow authoring and deployment are now backed by canonical, durable workspaces:\r\n\r\n- Workflow source identity stays consistent across editing, deployment, recovery, and uninstall flows.\r\n- Runtime prefixes persist across sessions so chats reconnect to the correct workflow runtime.\r\n- Immutable snapshots and crash-consistent lifecycle operations protect workflow content during updates and recovery.\r\n\r\n---\r\n\r\n### 🛠️ Improvements\r\n\r\n- **Faster startup** — non-critical maintenance and service restoration are deferred, while renderer hydration runs in parallel behind a clear readiness boundary.\r\n- **Nova launch reliability** — executable discovery and startup coordination are more deterministic across sign-in, settings, previews, ACP, A2A, scheduled tasks, and command execution.\r\n- **Chat tool-call clarity** — parallel commands are summarized more clearly, archive recall cards show their query, and AI credit details remain available on hover.\r\n- **Usage history depth** — Activity can retrieve up to 1,000 remote usage records.\r\n- **Product branding** — the application title bar now displays **Nova Desktop**.\r\n\r\n---\r\n\r\n### 🐛 Bug Fixes\r\n\r\n- **Subscription usage totals** now exclude records from unrelated billing types.\r\n- **AI credit receipts** are persisted and routed to the correct ACP chat session.\r\n- **Scheduled tasks** now handle timed-out command runs without leaving execution state inconsistent.\r\n- **Chat deletion** no longer triggers an unnecessary session refetch.\r\n- **Prompt improvement drafts** remain isolated from the active chat input.\r\n- **Cancellation and heartbeat handling** is more resilient across ACP and WebSocket connections.\r\n- **Workflow lifecycle races** can no longer let stale renderer requests overwrite newer state.\r\n\r\n---\r\n\r\n### ⚙️ Under the Hood\r\n\r\n- Added packaged boot tracing and verification for database startup, renderer hydration, the main critical path, and Windows production artifacts.\r\n- Expanded workflow lifecycle, canonical storage, deployment, runtime-prefix, native SQLite, and recovery verification coverage.\r\n- Updated Sharp to 0.35.3 and refreshed locked dependency patch versions.\r\n- **Application version metadata** was bumped to **1.0.17**.\r\n\r\n_Co-authored by [Nova](https://www.compassap.ai/portfolio/nova.html)_\r\n",
   "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0.17",
   "mandatory": false,
   "prerelease": false,
   "platforms": {
+    "darwin-arm64": {
+      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.17/Compass-Desktop-1.0.17-mac-arm64.zip",
+      "sha256": "79165519de1a4650183426dddea83dc23c0dc26718b13b9bcf1d5e3dfd370d04",
+      "size": 136262826,
+      "filename": "Compass-Desktop-1.0.17-mac-arm64.zip"
+    },
     "win32-x64": {
       "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.17/Compass-Desktop-1.0.17-setup.exe",
       "sha256": "fb240365723b96c836a24f79105d37449e144c5922005dac6254c80f0fa2bd70",
