@@ -1,22 +1,22 @@
 {
-  "version": "1.0.18",
-  "releaseDate": "2026-09-21",
-  "releaseNotes": "## ✨ What's New\r\n\r\n### 🛒 Safer Workflow Marketplace Installs\r\nWorkflow publishing and installation now use a clearer bundle experience:\r\n\r\n- Conflicting workflow installs are detected and resolved through a dedicated choice dialog.\r\n- Installed workflows retain their marketplace identity and show consistent, human-friendly names.\r\n- Workflow bundles are validated before installation and activated automatically when installed.\r\n\r\n### ✏️ Improved Resource Editing\r\nEditing Compass resources is more focused and capable:\r\n\r\n- Agent, content, and Markdown resources use refined editors with clearer editing flows.\r\n- Resource creation and editing states are easier to navigate, with expanded localisation and test coverage.\r\n\r\n### 💬 More Resilient Chat Streaming\r\nChat responses now render progressively and handle long-running tool activity more clearly:\r\n\r\n- Streaming Markdown appears incrementally for a smoother reading experience.\r\n- Tool-call cards and approval prompts present command activity and permissions more clearly.\r\n- ACP cancellation, session routing, and lifecycle handling are more robust.\r\n\r\n## 🛠️ Improvements\r\n\r\n- Refreshed the Activity usage tabs for clearer quota and progress information.\r\n- Delivered visual polish across chat, controls, sidebar branding, workflow toolbars, and workspace controls.\r\n- Improved scheduled-task detail presentation and the history results dialog.\r\n- The Workflow Studio makes better use of available prompt space and discovers tools from the active workspace.\r\n\r\n## 🐛 Bug Fixes\r\n\r\n- Workflow imports now support renamed legacy resources and prose steps.\r\n- Legacy workflow metadata is handled more safely, and stale snapshots from never-installed workflows are cleared.\r\n- A2A launches create their required workspace before starting.\r\n- Recovery notices are dismissed correctly, avoiding stale workflow status in the interface.\r\n- Workflow approvals and command displays now remain aligned with the active workflow.\r\n\r\n## ⚙️ Under the Hood\r\n\r\n- Strengthened desktop startup readiness, lifecycle, scheduler history-retention, ACP routing, cancellation, and streaming verification.\r\n- Added coverage for workflow marketplace conflicts, bundle contracts, legacy metadata, resource editing, and visual UI behaviour.\r\n- Removed the Brighten plugin source from the marketplace configuration.\r\n- Application version metadata was bumped to 1.0.18.\r\n\r\n🛸 Co-authored with [Nova](https://www.compassap.ai/portfolio/nova.html)\r\n",
-  "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0.18",
+  "version": "1.0.19",
+  "releaseDate": "2026-10-01",
+  "releaseNotes": "## ✨ What's New\r\n\r\n### 🧭 New Ways to Work\r\n- Choose a mode when starting a chat, including a dedicated Coding workspace with a familiar editor-style layout.\r\n- Work with files, a browser, terminals, Problems, side-by-side diffs, and board tasks from the Coding workspace.\r\n- Create and refine agents in the new Agent Designer, with clearer configuration and access to their save folders.\r\n- Coordinate multiple agents through a bounded multi-agent mode.\r\n\r\n### 🎨 Design and Workflow Improvements\r\n- Send design annotations to chat, use contextual review actions, and work with a refreshed notes pane.\r\n- Edit workflows on a native designer canvas with clearer step labels and more consistent graph handling.\r\n- Find and manage marketplace sources more easily with built-in source indicators and sorting.\r\n\r\n## 🛠️ Improvements\r\n- Preview Markdown and HTML files in Coding mode; previews stay available when switching tabs.\r\n- Use multiple terminal tabs and a built-in browser tab in the Coding workspace.\r\n- Enjoy more tailored workspace welcome screens, clearer chat controls, and richer scheduled-task execution details.\r\n- Agent and skill selection, workflow library navigation, and the marketplace settings experience have been refined.\r\n\r\n## 🐛 Bug Fixes\r\n- Switching chats and retrying messages now better preserves attachments, streaming state, tool details, and session routing.\r\n- Agent availability is refreshed before ACP prompts, and ACP runtimes are isolated by project root.\r\n- Workspace HTML previews have been restored; file-preview state is preserved across tabs and reset between sessions.\r\n- Selecting boards in Coding mode and expanding the active chat workspace in the sidebar now behave correctly.\r\n- Workflow designer graphs are normalized and nodes show their step names.\r\n\r\n## ⚙️ Under the Hood\r\n- Upgraded to Electron 44 and remediated dependency audit findings.\r\n- Hardened EV malware-scan validation for signing and removed an unused Azure DevOps PAT constant.\r\n- Application version metadata was bumped to 1.0.19.\r\n\r\n🛸 Co-authored with [Nova](https://www.compassap.ai/portfolio/nova.html)\r\n",
+  "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0.19",
   "mandatory": false,
   "prerelease": false,
   "platforms": {
     "darwin-arm64": {
-      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.18/Compass-Desktop-1.0.18-mac-arm64.zip",
-      "sha256": "8418ec9113472f866e2e5b45fb6aa77504a0466cc4e1439653aecf4d3fdcb091",
-      "size": 155393157,
-      "filename": "Compass-Desktop-1.0.18-mac-arm64.zip"
+      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.19/Compass-Desktop-1.0.19-mac-arm64.zip",
+      "sha256": "6f470afd2cb7752993ed5e0dd76d48187f20617b05018a67c12fbdcbf5221de4",
+      "size": 151792354,
+      "filename": "Compass-Desktop-1.0.19-mac-arm64.zip"
     },
     "win32-x64": {
-      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.18/Compass-Desktop-1.0.18-setup.exe",
-      "sha256": "c39dad4feb1589ad3984f482e897aab5d6f1d5d75f5ba4351b5fa3c1a02ecec3",
-      "size": 134071944,
-      "filename": "Compass-Desktop-1.0.18-setup.exe"
+      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.19/Compass-Desktop-1.0.19-setup.exe",
+      "sha256": "72dd99944fbb96e5461bc1187ed9affd84e0bed8df8b04b2b4b0839643ea2104",
+      "size": 132696416,
+      "filename": "Compass-Desktop-1.0.19-setup.exe"
     }
   }
 }
