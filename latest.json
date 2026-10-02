@@ -1,22 +1,16 @@
 {
-  "version": "1.0.19",
-  "releaseDate": "2026-10-01",
-  "releaseNotes": "## ✨ What's New\r\n\r\n### 🧭 New Ways to Work\r\n- Choose a mode when starting a chat, including a dedicated Coding workspace with a familiar editor-style layout.\r\n- Work with files, a browser, terminals, Problems, side-by-side diffs, and board tasks from the Coding workspace.\r\n- Create and refine agents in the new Agent Designer, with clearer configuration and access to their save folders.\r\n- Coordinate multiple agents through a bounded multi-agent mode.\r\n\r\n### 🎨 Design and Workflow Improvements\r\n- Send design annotations to chat, use contextual review actions, and work with a refreshed notes pane.\r\n- Edit workflows on a native designer canvas with clearer step labels and more consistent graph handling.\r\n- Find and manage marketplace sources more easily with built-in source indicators and sorting.\r\n\r\n## 🛠️ Improvements\r\n- Preview Markdown and HTML files in Coding mode; previews stay available when switching tabs.\r\n- Use multiple terminal tabs and a built-in browser tab in the Coding workspace.\r\n- Enjoy more tailored workspace welcome screens, clearer chat controls, and richer scheduled-task execution details.\r\n- Agent and skill selection, workflow library navigation, and the marketplace settings experience have been refined.\r\n\r\n## 🐛 Bug Fixes\r\n- Switching chats and retrying messages now better preserves attachments, streaming state, tool details, and session routing.\r\n- Agent availability is refreshed before ACP prompts, and ACP runtimes are isolated by project root.\r\n- Workspace HTML previews have been restored; file-preview state is preserved across tabs and reset between sessions.\r\n- Selecting boards in Coding mode and expanding the active chat workspace in the sidebar now behave correctly.\r\n- Workflow designer graphs are normalized and nodes show their step names.\r\n\r\n## ⚙️ Under the Hood\r\n- Upgraded to Electron 44 and remediated dependency audit findings.\r\n- Hardened EV malware-scan validation for signing and removed an unused Azure DevOps PAT constant.\r\n- Application version metadata was bumped to 1.0.19.\r\n\r\n🛸 Co-authored with [Nova](https://www.compassap.ai/portfolio/nova.html)\r\n",
-  "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0.19",
+  "version": "1.0.20",
+  "releaseDate": "2026-10-02",
+  "releaseNotes": "## ✨ What's New\r\n\r\n### 🧰 Find Tools Faster\r\n- Search the tool gallery by name or description and filter tools by enabled or available status.\r\n- Configure a Sage X3 tool preset using its service URL. Disabled session tools are now visible for discovery.\r\n- See the selected view in the sidebar's More menu.\r\n\r\n## 🛠️ Improvements\r\n- The tool gallery installation dialog has been simplified.\r\n- Nova CLI updates now run from Nova's installation directory.\r\n\r\n## 🐛 Bug Fixes\r\n- Storage appears in the sidebar only in chat mode.\r\n- Chat actions no longer overlap the mode controls.\r\n\r\n## ⚙️ Under the Hood\r\n- EV malware-scan validation during signing has been hardened.\r\n- Application version metadata was bumped to 1.0.20.\r\n\r\n🛸 Co-authored with [Nova](https://www.compassap.ai/portfolio/nova.html)",
+  "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0.20",
   "mandatory": false,
   "prerelease": false,
   "platforms": {
-    "darwin-arm64": {
-      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.19/Compass-Desktop-1.0.19-mac-arm64.zip",
-      "sha256": "6f470afd2cb7752993ed5e0dd76d48187f20617b05018a67c12fbdcbf5221de4",
-      "size": 151792354,
-      "filename": "Compass-Desktop-1.0.19-mac-arm64.zip"
-    },
     "win32-x64": {
-      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.19/Compass-Desktop-1.0.19-setup.exe",
-      "sha256": "72dd99944fbb96e5461bc1187ed9affd84e0bed8df8b04b2b4b0839643ea2104",
-      "size": 132696416,
-      "filename": "Compass-Desktop-1.0.19-setup.exe"
+      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.20/Compass-Desktop-1.0.20-setup.exe",
+      "sha256": "0944f1a80f9e5b6bdfd2b1a38db5e9c2f155a6964159203829afe88d7a710022",
+      "size": 132699792,
+      "filename": "Compass-Desktop-1.0.20-setup.exe"
     }
   }
 }
