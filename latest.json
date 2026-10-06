@@ -1,6 +1,6 @@
 {
   "version": "1.0.20",
-  "releaseDate": "2026-10-02",
+  "releaseDate": "2026-10-06",
   "releaseNotes": "## ✨ What's New\r\n\r\n### 🧰 Find Tools Faster\r\n- Search the tool gallery by name or description and filter tools by enabled or available status.\r\n- Configure a Sage X3 tool preset using its service URL. Disabled session tools are now visible for discovery.\r\n- See the selected view in the sidebar's More menu.\r\n\r\n## 🛠️ Improvements\r\n- The tool gallery installation dialog has been simplified.\r\n- Nova CLI updates now run from Nova's installation directory.\r\n\r\n## 🐛 Bug Fixes\r\n- Storage appears in the sidebar only in chat mode.\r\n- Chat actions no longer overlap the mode controls.\r\n\r\n## ⚙️ Under the Hood\r\n- EV malware-scan validation during signing has been hardened.\r\n- Application version metadata was bumped to 1.0.20.\r\n\r\n🛸 Co-authored with [Nova](https://www.compassap.ai/portfolio/nova.html)",
   "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0.20",
   "mandatory": false,
