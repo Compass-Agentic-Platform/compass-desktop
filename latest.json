@@ -6,6 +6,12 @@
   "mandatory": false,
   "prerelease": false,
   "platforms": {
+    "darwin-arm64": {
+      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.21/Compass-Desktop-1.0.21-mac-arm64.zip",
+      "sha256": "6ae01f5b62c92846b0a02cc7d4b9a395b4784336fd93da4f6d24244c52971321",
+      "size": 148879551,
+      "filename": "Compass-Desktop-1.0.21-mac-arm64.zip"
+    },
     "win32-x64": {
       "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.21/Compass-Desktop-1.0.21-setup.exe",
       "sha256": "3e494b0bee7d1e44c0c9e77a9576ede0487a766f34491caa15324ebf484c1f4d",
