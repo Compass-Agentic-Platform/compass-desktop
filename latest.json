@@ -1,22 +1,16 @@
 {
-  "version": "1.0.20",
-  "releaseDate": "2026-10-06",
-  "releaseNotes": "## ✨ What's New\r\n\r\n### 🧰 Find Tools Faster\r\n- Search the tool gallery by name or description and filter tools by enabled or available status.\r\n- Configure a Sage X3 tool preset using its service URL. Disabled session tools are now visible for discovery.\r\n- See the selected view in the sidebar's More menu.\r\n\r\n## 🛠️ Improvements\r\n- The tool gallery installation dialog has been simplified.\r\n- Nova CLI updates now run from Nova's installation directory.\r\n\r\n## 🐛 Bug Fixes\r\n- Storage appears in the sidebar only in chat mode.\r\n- Chat actions no longer overlap the mode controls.\r\n\r\n## ⚙️ Under the Hood\r\n- EV malware-scan validation during signing has been hardened.\r\n- Application version metadata was bumped to 1.0.20.\r\n\r\n🛸 Co-authored with [Nova](https://www.compassap.ai/portfolio/nova.html)",
-  "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0.20",
+  "version": "1.0.21",
+  "releaseDate": "2026-10-09",
+  "releaseNotes": "## ✨ What's New\r\n\r\n### 🤝 Meet Pips\r\n- Create and manage a team of agents in the new Pips workspace, with individual avatars, identity colours, and status indicators.\r\n- Give each Pip its own working folder, configure its identity and model, and control how it hands work to teammates.\r\n- Choose agent roles from Agent Studio or the marketplace, or jump into Agent Studio to build a new agent.\r\n\r\n### 💬 Team Channels and Deliverables\r\n- Bring Pips together in persistent team channels, with mentions, replies, threads, progress updates, and stop controls.\r\n- Delegate work between Pips through handoffs while keeping each teammate's agent session separate.\r\n- Save and browse Pip deliverables locally, with version history.\r\n\r\n### 🧰 More Control in Coding Mode\r\n- Create, delete, and move files and folders within the authorized workspace, with safeguards for open files and unsaved changes.\r\n- Use additional editor shortcuts, terminal paste controls, and terminal panel collapse, maximise, and restore actions.\r\n- See changed-file counts alongside the Coding workspace's Git controls.\r\n\r\n### 🧠 Clearer Memory Recall\r\n- Read recalled memory topics directly in chat, with formatted Markdown, recall status, and copy actions.\r\n- Keep raw memory tool requests and responses tucked away in technical details.\r\n\r\n## 🛠️ Improvements\r\n- Workflows are grouped into Installed and Not installed sections, with workflow tiles and clearer installation status.\r\n- Retry loading the workflow list when a request fails.\r\n- Pip chat navigation, conversation naming, deletion, and configuration have been refined.\r\n- Voice input now uses tap-to-talk controls instead of hold-to-talk, with updated transcription, session limits, and availability handling.\r\n- New Pips, workflow, and memory interfaces include localized messages across English, German, Spanish, and European Portuguese.\r\n\r\n## 🐛 Bug Fixes\r\n- Account language synchronization waits for startup authentication and avoids duplicate refreshes, while still refreshing after reconnecting.\r\n- Realtime voice sessions use Compass-brokered connections, with stronger cleanup, recovery, and usage settlement handling.\r\n- Pip channel cleanup handles settled handoffs before removing channel messages, and collaboration safeguards reduce duplicate handoffs.\r\n- Utility views no longer show the chat sidebar panel; selecting a mode from a full-page view returns to chat.\r\n- The sidebar footer logo is centered, and the obsolete tool-gallery registry-update banner has been removed.\r\n\r\n## ⚙️ Under the Hood\r\n- Added persistent storage and migrations for Pips, team channels, threads, teammates, and versioned deliverables.\r\n- Expanded regression tests and packaged verification scripts for agent collaboration, deliverables, Coding interactions, memory recall, and account language synchronization.\r\n- Updated the Electron packaging toolchain and dependencies, including Sharp, Mermaid, and Mammoth.\r\n- Accepted the coding agents and worktrees architecture design; its proposed workspace is not included as a new feature in this release.\r\n- Application version metadata was bumped to 1.0.21.\r\n\r\n🛸 Co-authored with [Nova](https://www.compassap.ai/portfolio/nova.html)",
+  "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0.21",
   "mandatory": false,
   "prerelease": false,
   "platforms": {
-    "darwin-arm64": {
-      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.20/Compass-Desktop-1.0.20-mac-arm64.zip",
-      "sha256": "d1ea22a6c4526e1036a0d6c68b7773123d82d7a06749f8ad47a016fe040c75dd",
-      "size": 151793443,
-      "filename": "Compass-Desktop-1.0.20-mac-arm64.zip"
-    },
     "win32-x64": {
-      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.20/Compass-Desktop-1.0.20-setup.exe",
-      "sha256": "0944f1a80f9e5b6bdfd2b1a38db5e9c2f155a6964159203829afe88d7a710022",
-      "size": 132699792,
-      "filename": "Compass-Desktop-1.0.20-setup.exe"
+      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.21/Compass-Desktop-1.0.21-setup.exe",
+      "sha256": "3e494b0bee7d1e44c0c9e77a9576ede0487a766f34491caa15324ebf484c1f4d",
+      "size": 141871968,
+      "filename": "Compass-Desktop-1.0.21-setup.exe"
     }
   }
 }
