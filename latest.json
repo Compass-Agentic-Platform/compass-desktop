@@ -6,6 +6,12 @@
   "mandatory": false,
   "prerelease": false,
   "platforms": {
+    "darwin-arm64": {
+      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.23/Compass-Desktop-1.0.23-mac-arm64.zip",
+      "sha256": "41201812ba4ed6f07b02f676ecacb6db9c12f2f604529bed86fc42bfd9150aa4",
+      "size": 149133125,
+      "filename": "Compass-Desktop-1.0.23-mac-arm64.zip"
+    },
     "win32-x64": {
       "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.23/Nova.Twix_0.1.0_x64-setup.exe",
       "sha256": "a8447f1bc2b7b1122ed505aa62c9aa62ec102424572a6134ff9b6597ba417de3",
