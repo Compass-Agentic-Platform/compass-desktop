@@ -1,22 +1,16 @@
 {
-  "version": "1.0.23",
-  "releaseDate": "2026-10-27",
-  "releaseNotes": "## ✨ What's New\r\n\r\n### 🔑 Personal API Keys\r\n\r\n- Manage your personal API keys from a new dedicated page.\r\n\r\n### 📋 Project Task Boards\r\n\r\n- Task boards are now isolated per Project, so each Project shows only its own tasks.\r\n\r\n### 📎 Larger Attachments, Clearer Rejections\r\n\r\n- The per-file attachment limit is now **15 MiB**.\r\n- When an attachment is rejected, Nova now shows the reason.\r\n\r\n### 🧠 Vocabulary Library\r\n\r\n- The vocabulary library now opens from **Projects**.\r\n- Authoring is improved, and the library is cached so it opens faster.\r\n- Navigation warns you before you discard unsaved vocabulary edits.\r\n\r\n## 🛠️ Improvements\r\n\r\n- Chat: user prompt bubbles are refined, and assistant messages no longer use card styling.\r\n- Switching between project tabs in chat is faster.\r\n- The chat selector is hidden when no subagents are available.\r\n- Navigation rail grouping is simpler.\r\n- The Design preview pane fills the available height.\r\n- The Activity view has a corrected layout and loads usage data more reliably.\r\n- The Projects toggle is hidden in Settings.\r\n\r\n## 🐛 Bug Fixes\r\n\r\n- Pip upgrades and vocabulary interface issues are repaired.\r\n- Upload failure diagnostics are sanitised so they no longer expose sensitive details.\r\n- ACP session replay is guarded against duplication, and tool-call groups collapse correctly.\r\n\r\n## ⚙️ Under the Hood\r\n\r\n- Development backend mode is now disabled by default.\r\n- Architecture decision records were aligned with the implementation, and ADRs were synced.\r\n- Lockfile dependencies were updated.\r\n- Application version metadata was bumped to **1.0.23**.\r\n\r\n## References\r\n\r\n- Previous release: [v1.0.22](https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0.22).\r\n- Local history reviewed: `1ac5720..3ea78f7`.\r\n\r\n🛸 Co-authored with [Nova](https://www.compassap.ai/nova)\r\n",
-  "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0.23",
+  "version": "1.0.24",
+  "releaseDate": "2026-10-30",
+  "releaseNotes": "## ✨ What's New\r\n\r\n### 🔧 Clearer Tool Activity\r\n\r\n- Follow tool calls through one live activity line per reply.\r\n- Expand the completed-tool summary to inspect finished calls without cluttering the conversation.\r\n- Browse the redesigned Tools gallery with compact cards, grouping, and subtler selected filters.\r\n\r\n## 🛠️ Improvements\r\n\r\n- Response footer actions remain visible, with Copy on the left and duration followed by credits on the right.\r\n- My Activity uses **Activity**, **Weekly**, and **Limits** tabs, a consistent colour palette, and a framed **Recent work** section.\r\n- Personal API keys have a redesigned list, creation dialog, and filter.\r\n- Office add-ins have shorter names and Microsoft 365-style icons.\r\n- Sidebar creation icons are consistent, and the Permissions tab is hidden in Settings.\r\n- The Design Notes panel has a close button, and the **Review in Nova** menu opens above the preview.\r\n- Updated interface translations cover English, German, Spanish, and European Portuguese.\r\n\r\n## 🐛 Bug Fixes\r\n\r\n- Vocabulary discard prompts use in-app confirmations, pause autosave while awaiting a decision, and restore focus safely.\r\n- Design element selection maps targets to their location in saved HTML and checks the tag and text before saving, refusing changes when they do not match.\r\n- Design selection and comment snippets no longer include the temporary hover-outline marker.\r\n- The Project journey wizard stays hidden until its data has loaded.\r\n\r\n## ⚙️ Under the Hood\r\n\r\n- Added regression coverage for vocabulary confirmations and autosave, and updated Design editing tests.\r\n- Added HTML parsing support for more reliable Design element matching.\r\n- Application version metadata was bumped to **1.0.24**.\r\n\r\n## References\r\n\r\n- Previous release notes: [v1.0.23](release-notes-1.0.23.md).\r\n- Local history reviewed: `3ea78f7..626eae3` — seven commits after the 1.0.23 version bump.\r\n\r\n🛸 Co-authored with [Nova](https://www.compassap.ai/nova)\r\n",
+  "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/tag/v1.0.24",
   "mandatory": false,
   "prerelease": false,
   "platforms": {
-    "darwin-arm64": {
-      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.23/Compass-Desktop-1.0.23-mac-arm64.zip",
-      "sha256": "643c06796735982eccb93d1899e5a1277364d869a6dbbe839b944ab7cb477c6a",
-      "size": 149133099,
-      "filename": "Compass-Desktop-1.0.23-mac-arm64.zip"
-    },
     "win32-x64": {
-      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.23/Compass-Desktop-1.0.23-setup.exe",
-      "sha256": "42784cc48f31de8651e1e4829726b55e5632f2253b09d02da1797ca8881b5afe",
-      "size": 142037208,
-      "filename": "Compass-Desktop-1.0.23-setup.exe"
+      "url": "https://github.com/Compass-Agentic-Platform/compass-desktop/releases/download/v1.0.24/Compass-Desktop-1.0.24-setup.exe",
+      "sha256": "342f0c465d0fbc9799b7f97f947052a92b62421e8205a8d3b8e342c3eb4e1301",
+      "size": 142086864,
+      "filename": "Compass-Desktop-1.0.24-setup.exe"
     }
   }
 }
